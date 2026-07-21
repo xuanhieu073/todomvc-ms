@@ -4,6 +4,7 @@ using Carter.Request;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using MongoDB.Entities;
 using Todo.Api.DTOs;
 using Todo.Api.Entities;
@@ -17,13 +18,15 @@ public class TodoModule : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/todos", (ITodoService _todoService, HttpRequest req) =>
+        var apiGroup = app.MapGroup("/api/todos");
+
+        apiGroup.MapGet("", (ITodoService _todoService, HttpRequest req) =>
         {
             var filter = req.Query.As<string>("filter");
             return _todoService.Filter(filter);
         });
 
-        app.MapGet("/api/todos/{id}", async (ITodoService _todoService, string Id) => {
+        apiGroup.MapGet("/{id}", async (ITodoService _todoService, string Id) => {
             var todo = await _todoService.GetTodoById(Id);
             if(todo == null)
             {
@@ -35,7 +38,7 @@ public class TodoModule : ICarterModule
             }
         });
 
-        app.MapPost("/api/todos", async (IValidator <CreateToDoRequest> _validator, ITodoService _todoService, CreateToDoRequest createTodoRequest) => {
+        apiGroup.MapPost("", async (IValidator <CreateToDoRequest> _validator, ITodoService _todoService, CreateToDoRequest createTodoRequest) => {
             ValidationResult validationResults = _validator.Validate(createTodoRequest);
             if (!validationResults.IsValid)
             {
@@ -48,16 +51,24 @@ public class TodoModule : ICarterModule
             }
         });
 
-        app.MapPut("/api/todos/{id}", async (ITodoService _todoService, string Id, UpdateTodoRequest updateTodoRequest) => {
-            var result = await _todoService.UpdateTodo(Id, updateTodoRequest);
-            return result switch
+        apiGroup.MapPut("/{id}", async (IValidator<UpdateTodoRequest> _validator, ITodoService _todoService, string Id, UpdateTodoRequest updateTodoRequest) => {
+            ValidationResult validationResults = _validator.Validate(updateTodoRequest);
+            if(!validationResults.IsValid)
             {
-                null => Results.NotFound("Invalid Id"),
-                _ => Results.Ok(result)
-            };
+                return Results.BadRequest(validationResults.Errors);
+            }
+            else
+            {
+                var result = await _todoService.UpdateTodo(Id, updateTodoRequest);
+                return result switch
+                {
+                    null => Results.NotFound("Invalid Id"),
+                    _ => Results.Ok(result)
+                };
+            }
         });
 
-        app.MapPatch("/api/todos/{id}/toggle", async (ITodoService _todoService, string Id) => {
+        apiGroup.MapPatch("/{id}/toggle", async (ITodoService _todoService, string Id) => {
             var result = await _todoService.ToggleIsCompleted(Id);
             return result switch
             {
@@ -66,7 +77,7 @@ public class TodoModule : ICarterModule
             };
         });
 
-        app.MapDelete("/api/todos/{id}", async (ITodoService _todoService, string Id) =>
+        apiGroup.MapDelete("/{id}", async (ITodoService _todoService, string Id) =>
         {
             var result = await _todoService.DeleteTodo(Id);
             return result switch
@@ -77,7 +88,7 @@ public class TodoModule : ICarterModule
             };
         });
 
-        app.MapDelete("/api/todos/completed", async (ITodoService _todoService) => {
+        apiGroup.MapDelete("/completed", async (ITodoService _todoService) => {
             var deleteCount = await _todoService.ClearCompleted();
             return Results.Ok($"Deleted {deleteCount} todos");
         });

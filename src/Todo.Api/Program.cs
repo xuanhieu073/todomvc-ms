@@ -17,12 +17,24 @@ builder.Services.AddOpenApi();
 builder.Services.AddCarter();
 builder.Services.AddAutoMapper(typeof(MappingProfiles));
 builder.Services.AddScoped<ITodoService, TodoService>();
-builder.Services.AddScoped<IValidator<CreateToDoRequest>, TodoRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateToDoRequest>, CreateTodoRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateTodoRequest>, UpdateTodoRequestValidator>();
 
 await DB.InitAsync("TodoApp", new MongoClientSettings()
 {
     Server = new MongoServerAddress("localhost", 27017),
     Credential = MongoCredential.CreateCredential("admin", "root", "example")
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "Todo.Bff",
+                        policy =>
+                        {
+                            policy.WithOrigins("http://localhost:5268")
+                                .AllowAnyHeader()
+                                .AllowAnyMethod();
+                        });
 });
 
 var app = builder.Build();

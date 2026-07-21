@@ -1,0 +1,43 @@
+@Todo.Bff_HostAddress = http://localhost:5268
+
+GET {{Todo.Bff_HostAddress}}/bff/todos?filter=all
+Accept: application/json
+
+###
+
+GET {{Todo.Bff_HostAddress}}/bff/todos/6a5ec6de752ca749fda97d15
+Accept: application/json
+
+###
+
+POST {{Todo.Bff_HostAddress}}/bff/todos
+Content-Type: application/json
+
+{
+  "Title": "React"
+}
+
+###
+
+PUT {{Todo.Bff_HostAddress}}/bff/todos/6a5f3ab3f72bb91d0af08550
+Content-Type: application/json
+
+{
+  "Title": "Angular",
+  "isCompleted": false
+}
+
+###
+
+PATCH {{Todo.Bff_HostAddress}}/bff/todos/6a5f3cd5f72bb91d0af08553/toggle
+Accept: application/json
+
+###
+
+DELETE {{Todo.Bff_HostAddress}}/bff/todos/6a5f40c2f72bb91d0af08557
+Accept: application/json
+
+###
+
+DELETE {{Todo.Bff_HostAddress}}/bff/todos/completed
+Accept: application/json
