@@ -1,7 +1,7 @@
 ﻿using Todo.Api.DTOs;
 using Todo.Api.Entities;
 
-namespace Todo.Api.Services.Interfaces
+namespace Todo.Api.Repository.Interfaces
 {
     public interface ITodoService
     {

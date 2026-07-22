@@ -5,7 +5,7 @@ Accept: application/json
 
 ###
 
-GET {{Todo.Bff_HostAddress}}/bff/todos/6a5ec6de752ca749fda97d15
+GET {{Todo.Bff_HostAddress}}/bff/todos/6a604368d13c5ceb4a41caa5
 Accept: application/json
 
 ###
@@ -14,27 +14,27 @@ POST {{Todo.Bff_HostAddress}}/bff/todos
 Content-Type: application/json
 
 {
-  "Title": "React"
+  "Title": ""
 }
 
 ###
 
-PUT {{Todo.Bff_HostAddress}}/bff/todos/6a5f3ab3f72bb91d0af08550
+PUT {{Todo.Bff_HostAddress}}/bff/todos/6a601b745d59c4e237e1528b
 Content-Type: application/json
 
 {
   "Title": "Angular",
-  "isCompleted": false
+  "isCompleted": true
 }
 
 ###
 
-PATCH {{Todo.Bff_HostAddress}}/bff/todos/6a5f3cd5f72bb91d0af08553/toggle
+PATCH {{Todo.Bff_HostAddress}}/bff/todos/6a604368d13c5ceb4a41caa5/toggle
 Accept: application/json
 
 ###
 
-DELETE {{Todo.Bff_HostAddress}}/bff/todos/6a5f40c2f72bb91d0af08557
+DELETE {{Todo.Bff_HostAddress}}/bff/todos/6a601e395d59c4e237e1528d
 Accept: application/json
 
 ###

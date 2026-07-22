@@ -2,18 +2,11 @@
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using MongoDB.Entities;
-using System.Net;
 using Todo.Api.DTOs;
 using Todo.Api.Entities;
-using Todo.Api.Services.Interfaces;
-using static System.Net.WebRequestMethods;
+using Todo.Api.Repository.Interfaces;
 
-enum Status {
-    Active,
-    Completed,
-}
-
-namespace Todo.Api.Services
+namespace Todo.Api.Repository
 {
     public class TodoService : ITodoService
     {

@@ -1,12 +1,10 @@
 using Carter;
 using FluentValidation;
-using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
 using MongoDB.Entities;
 using Todo.Api.DTOs;
-using Todo.Api.Entities;
-using Todo.Api.Services;
-using Todo.Api.Services.Interfaces;
+using Todo.Api.Repository;
+using Todo.Api.Repository.Interfaces;
 using Todo.Api.Validators;
 
 var builder = WebApplication.CreateBuilder(args);

@@ -1,92 +1,126 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
-using System.Net;
+﻿using System.Net;
+using System.Text;
+using System.Text.Json;
+using Todo.Bff.Common;
 using Todo.Bff.DTOs;
-
-using ApiResponse = Microsoft.AspNetCore.Http.HttpResults.Results<
-    Microsoft.AspNetCore.Http.HttpResults.Ok<Todo.Bff.DTOs.TodoDto>,
-    Microsoft.AspNetCore.Http.HttpResults.Ok<string>,
-    Microsoft.AspNetCore.Http.HttpResults.Ok,
-    Microsoft.AspNetCore.Http.HttpResults.NotFound<string>,
-    Microsoft.AspNetCore.Http.HttpResults.BadRequest<string>>;
 
 namespace Todo.Bff.Clients
 {
     public class TodoApiClient
     {
-        private readonly HttpClient _httpClient;
+        private readonly HttpClient _http;
+        private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
 
         public TodoApiClient(HttpClient httpClient)
         {
-            _httpClient = httpClient;
+            _http = httpClient;
         }
 
-        public async Task<List<TodoDto>> GetTodosAsync(CancellationToken cancellationToken = default)
+        public async Task<ApiResult> GetTodosAsync(string? filter, CancellationToken cancellationToken = default)
         {
-            var response = await _httpClient.GetFromJsonAsync<List<TodoDto>>("api/todos", cancellationToken);
-            return response ?? new List<TodoDto>();
+            return filter switch
+           {
+               null => await GetAsync<List<TodoDto>>("/api/todos", cancellationToken),
+               _ => await GetAsync<List<TodoDto>>($"/api/todos?filter={filter}", cancellationToken),
+           };
         }
 
-        public async Task<ApiResponse> GetTodoAsync(string Id, CancellationToken cancellationToken = default)
-        {
-            var response = await _httpClient.GetAsync($"api/todos/{Id}", cancellationToken);
-            return await ReturnResult(response, cancellationToken);
-        }
+        public Task<ApiResult> GetTodoAsync(string Id, CancellationToken ct = default)
+        => GetAsync<TodoDto>($"/api/todos/{Id}", ct);
 
-        public async Task<ApiResponse> CreateTodoAsync(CreateTodoRequest createTodoRequest, CancellationToken cancellationToken = default)
-        {
-            var response = await _httpClient.PostAsJsonAsync("/api/todos", createTodoRequest, cancellationToken);
-            return await ReturnResult(response, cancellationToken);
-        }
+        public Task<ApiResult> CreateTodoAsync(CreateTodoRequest dto, CancellationToken ct = default)
+        => CreateAsync<CreateTodoRequest, TodoDto, List<TodoPropertiesError>>("/api/todos", dto, ct);
 
-        public async Task<ApiResponse> UpdateTodoAsync(string Id, UpdateTodoRequest updateTodoRequest, CancellationToken cancellationToken = default)
-        {
-            var response = await _httpClient.PutAsJsonAsync($"/api/todos/{Id}", updateTodoRequest, cancellationToken);
-            return await ReturnResult(response, cancellationToken);
-        }
+        public Task<ApiResult> UpdateTodoAsync(string Id, UpdateTodoRequest updateTodoRequest, CancellationToken cancellationToken = default)
+            => UpdateAsync<UpdateTodoRequest, TodoDto, List<TodoPropertiesError>>($"/api/todos/{Id}", updateTodoRequest, cancellationToken);
 
-        public async Task<ApiResponse> ToggleIsComplete(string Id, CancellationToken cancellationToken = default) 
-        {
-            var response = await _httpClient.PatchAsync($"/api/todos/{Id}/toggle",null, cancellationToken);
-            return await ReturnResult(response, cancellationToken);
-        }
+        public Task<ApiResult> ToggleIsCompleted(string Id, CancellationToken cancellationToken = default)
+            => SendAsync<TodoDto, string>(HttpMethod.Patch, $"/api/todos/{Id}/toggle", null, cancellationToken);
 
-        public async Task<ApiResponse> DeleteTodo(string Id, CancellationToken cancellationToken = default)
-        {
-            var response = await _httpClient.DeleteAsync($"/api/todos/{Id}", cancellationToken);
-            return await ReturnResult(response, cancellationToken);
-        }
+        public Task<ApiResult> DelteTodo(string Id, CancellationToken cancellationToken = default)
+            => DeleteAsync<string>($"/api/todos/{Id}", cancellationToken);
 
-        public async Task<ApiResponse> ClearCompleted(CancellationToken cancellationToken = default)
-        {
-            var response = await _httpClient.DeleteAsync($"/api/todos/completed", cancellationToken);
-            return await ReturnResult(response, cancellationToken);
-        }
+        public Task<ApiResult> ClearCompleted(CancellationToken cancellationToken = default)
+           => DeleteAsync<string>($"/api/todos/completed", cancellationToken);
 
-        public async Task<ApiResponse> ReturnResult(HttpResponseMessage response, CancellationToken cancellationToken)
+
+        private Task<ApiResult> CreateAsync<TRequest, TResponse, TError>(
+            string path, TRequest body, CancellationToken ct = default)
+            => SendAsync<TResponse, TError>(HttpMethod.Post, path, body, ct);
+
+        private Task<ApiResult> UpdateAsync<TRequest, TResponse, TError>(
+            string path, TRequest body, CancellationToken ct = default)
+            => SendAsync<TResponse, TError>(HttpMethod.Put, path, body, ct);
+
+        private Task<ApiResult> DeleteAsync<TResponse>(
+            string path, CancellationToken ct = default)
+            => SendAsync<TResponse, string>(HttpMethod.Delete, path, null, ct);
+
+        private Task<ApiResult> GetAsync<TResponse>(
+            string path, CancellationToken ct = default)
+            => SendAsync<TResponse, string>(HttpMethod.Get, path, null, ct);
+
+        private async Task<ApiResult> SendAsync<TResponse, TError>(
+            HttpMethod method, string path, object? body, CancellationToken cancellationToken)
         {
-            if (response.IsSuccessStatusCode)
+            using var request = new HttpRequestMessage(method, path);
+
+            if (body is not null)
             {
-                if (response.Content.Headers.ContentLength != 0)
-                {
-                    try
-                    {
-                        var todoDto = await response.Content.ReadFromJsonAsync<TodoDto>(cancellationToken);
-                        return TypedResults.Ok(todoDto);
-                    }
-                    catch (System.Text.Json.JsonException)
-                    {
-                        string rawText = await response.Content.ReadAsStringAsync(cancellationToken);
-                        return TypedResults.Ok(rawText);
-                    }
-                }
-                return TypedResults.Ok();
+                var json = JsonSerializer.Serialize(body, JsonOpts);
+                request.Content = new StringContent(json, Encoding.UTF8, "application/json");
             }
-            if (response.StatusCode == HttpStatusCode.NotFound)
+
+            HttpResponseMessage response;
+            try
             {
-                return TypedResults.NotFound("Invalid Id");
+                response = await _http.SendAsync(request, cancellationToken);
             }
-            var errorMessage = await response.Content.ReadAsStringAsync(cancellationToken);
-            return TypedResults.BadRequest(errorMessage);
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new Exception($"Request timeout.", ex);
+            }
+
+            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            switch (response.StatusCode)
+            {
+                case HttpStatusCode.OK:
+                case HttpStatusCode.Created:
+                    {
+                        var data = Deserialize<TResponse>(raw);
+                        return ApiSucessResult<TResponse>.Success(data!, (int)response.StatusCode);
+                    }
+
+                case HttpStatusCode.NoContent:
+                    return ApiSucessResult<TResponse>.Success(default!, (int)response.StatusCode);
+
+                case HttpStatusCode.BadRequest:
+                    {
+                        var error = Deserialize<TError>(raw);
+                        return ApiErrorResult<TError>.Failure(error, 400, "Bad request", "VALIDATION_ERROR");
+                    }
+
+                case HttpStatusCode.NotFound:
+                    {
+                        var errorMessage = Deserialize<string>(raw);
+                        return ApiErrorResult<string>.Failure(errorMessage, 404, errorMessage ?? "", "NOT_FOUND");
+                    }
+                case HttpStatusCode.InternalServerError:
+                    return ApiErrorResult<string>.Failure("Internal Server Error",500, "Internal Server Error", "INTERNAL_SERVER_ERROR");
+                case HttpStatusCode.BadGateway:
+                case HttpStatusCode.ServiceUnavailable:
+
+                default:
+                    return ApiErrorResult<string>.Failure("Unknow Error",(int)response.StatusCode, "Unknow Error", "UNKNOWN");
+            }
+        }
+
+        private static TResponse? Deserialize<TResponse>(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return default;
+            try { return JsonSerializer.Deserialize<TResponse>(raw, JsonOpts); }
+            catch (JsonException) { return default; }
         }
     }
 }

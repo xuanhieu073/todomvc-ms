@@ -1,16 +1,9 @@
-using AutoMapper;
 using Carter;
 using Carter.Request;
 using FluentValidation;
 using FluentValidation.Results;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
-using MongoDB.Entities;
 using Todo.Api.DTOs;
-using Todo.Api.Entities;
-using Todo.Api.Services;
-using Todo.Api.Services.Interfaces;
-using Todo.Api.Validators;
+using Todo.Api.Repository.Interfaces;
 
 namespace Todo.Api.Modules;
 
