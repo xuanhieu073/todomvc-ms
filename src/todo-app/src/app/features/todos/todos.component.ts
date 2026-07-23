@@ -1,69 +1,126 @@
-import { Component, inject } from '@angular/core';
-import { TodoItemComponent } from './components/todo-item/todo-item.component';
-import { TodosStore } from './todos.store';
-import { TodosService } from './services/todos.service';
 import { AsyncPipe } from '@angular/common';
+import { Component, inject, OnInit } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { map, take } from 'rxjs';
 import { FilterButtonComponent } from './components/filter-button/filter-button.component';
+import { TodoItemComponent } from './components/todo-item/todo-item.component';
+import { TodosService } from './services/todos.service';
+import { TodosStore } from './todos.store';
+import { TodoFooterComponent } from './components/todo-footer/todo-footer.component';
+import { ErrorMessageComponent } from './components/error-message/error-message.component';
+import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-todos',
-  imports: [TodoItemComponent, AsyncPipe, FilterButtonComponent],
+  imports: [
+    TodoItemComponent,
+    AsyncPipe,
+    TodoFooterComponent,
+    ErrorMessageComponent,
+    ReactiveFormsModule,
+  ],
   providers: [TodosStore, TodosService],
   template: ` <div class="flex flex-col items-center mt-6 gap-8">
     <h1 class="text-7xl text-green-700 font-medium">Todos</h1>
 
-    <div class="flex flex-col shadow-2xl">
-      <input
-        class="px-14 py-4 shadow-2xl min-w-175 text-2xl italic border border-gray-200 outline-green-600"
-        type="text"
-        placeholder="What need to be done?"
-        (keydown.enter)="CreateTodo($event)"
-      />
-      @if (todos$ | async; as todos) {
+    @if (vm$ | async; as vm) {
+      <div class="flex flex-col shadow-2xl relative">
+        <div class="flex min-w-175 border border-gray-200 shadow-2xl">
+          @if (
+            vm.todos.filter(
+              (todo) =>
+                vm?.filter === 'all' ||
+                (todo.isCompleted === false && vm?.filter === 'active') ||
+                (todo.isCompleted === true && vm?.filter === 'completed')
+            ).length > 0
+          ) {
+            <button
+              class="absolute top-4 left-4 text-2xl cursor-pointer"
+              (click)="ToggleCompletedAll()"
+            >
+              🔻
+            </button>
+          }
+          <input
+            class="py-4 px-14 text-2xl italic outline-green-600 w-full"
+            type="text"
+            placeholder="What needs to be done?"
+            (keydown.enter)="CreateTodo($event)"
+            [formControl]="newTodoTitle"
+          />
+        </div>
+        @if (newTodoTitle.touched && newTodoTitle.hasError('maxlength')) {
+          <div class="bg-white px-4 border border-gray-200">
+            Title length shoud not greater than 200
+          </div>
+        }
         <ul>
-          @for (todo of todos; track todo.id) {
-            <app-todo-item [todo]="todo" />
+          @for (todo of vm.todos; track todo.id) {
+            @if (
+              vm.filter === 'all' ||
+              (todo.isCompleted === false && vm.filter === 'active') ||
+              (todo.isCompleted === true && vm.filter === 'completed')
+            ) {
+              <app-todo-item [todo]="todo" />
+            }
           }
         </ul>
-      }
-      <div class="border border-gray-200 px-4 py-2 relative bg-white">
-        <p>1 item left</p>
-        <div class="flex gap-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          @if (filter$ | async; as filter) {
-            <app-filter-button
-              [isActive]="filter === 'all'"
-              (click)="SetFilter('all')"
-              text="All"
-            />
-            <app-filter-button
-              [isActive]="filter === 'active'"
-              (click)="SetFilter('active')"
-              text="Active"
-            />
-            <app-filter-button
-              [isActive]="filter === 'completed'"
-              (click)="SetFilter('completed')"
-              text="Completed"
-            />
-          }
-        </div>
+        @if (vm.todos.length > 0 || vm.filter !== 'all') {
+          <app-todo-footer />
+        }
       </div>
-    </div>
+
+      @if (vm.isLoading) {
+        <div>Loading...</div>
+      }
+
+      @if (vm.error) {
+        <app-error-message [title]="vm.error.title" (onDataSent)="CloseNofity($event)" />
+      }
+    }
   </div>`,
   styles: ``,
 })
-export class TodosComponent {
+export class TodosComponent implements OnInit {
   private readonly todosStore = inject(TodosStore);
-  todos$ = this.todosStore.todos$;
-  filter$ = this.todosStore.filter$;
+  private readonly route = inject(ActivatedRoute);
 
-  SetFilter(filter: 'all' | 'active' | 'completed') {
-    this.todosStore.setFilter(filter);
+  todos$ = this.todosStore.todos$;
+  vm$ = this.todosStore.vm$;
+  newTodoTitle = new FormControl('', {
+    validators: [Validators.required, Validators.min(2), Validators.maxLength(200)],
+  });
+
+  ngOnInit(): void {
+    this.todosStore.fetchEffect(
+      this.route.fragment.pipe(
+        map((filter) =>
+          ['all', 'active', 'completed'].indexOf(filter || '') >= 0
+            ? (filter as 'all' | 'active' | 'completed')
+            : 'all',
+        ),
+      ),
+    );
   }
 
   CreateTodo(event: Event) {
-    const el = event.target as HTMLInputElement;
-    this.todosStore.createEffect({ title: el.value });
-    el.value = '';
+    if (this.newTodoTitle.valid) {
+      const el = event.target as HTMLInputElement;
+      this.todosStore.createEffect({ title: el.value });
+      this.newTodoTitle.reset();
+    }
+  }
+
+  ToggleCompletedAll() {
+    this.todos$.pipe(take(1)).subscribe((todos) => {
+      if (todos.filter((todo) => !todo.isCompleted).length > 0) {
+        this.todosStore.completedAllEffect(true);
+      } else {
+        this.todosStore.completedAllEffect(false);
+      }
+    });
+  }
+  CloseNofity(event: string) {
+    this.todosStore.removeError();
   }
 }

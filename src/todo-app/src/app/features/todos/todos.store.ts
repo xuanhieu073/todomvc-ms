@@ -1,16 +1,29 @@
 import { inject, Injectable } from '@angular/core';
 import { Todo } from './models/todo';
 import { ComponentStore } from '@ngrx/component-store';
-import { switchMap, tap } from 'rxjs';
+import {
+  forkJoin,
+  last,
+  merge,
+  Observable,
+  of,
+  switchMap,
+  takeLast,
+  tap,
+  withLatestFrom,
+} from 'rxjs';
 import { TodosService } from './services/todos.service';
-import { CreateTodoRequest } from './models/createTodoRequest';
+import { CreateTodoRequest } from './models/create-todo-request';
 import { tapResponse } from '@ngrx/operators';
 import { HttpErrorResponse } from '@angular/common/http';
-import { UpdateTodoRequest } from './models/updateTodoRequest';
+import { UpdateTodoRequest } from './models/update-todo-request';
 
 export interface TodosState {
   isLoading: boolean;
-  error: string;
+  error: {
+    title: string;
+    details: string;
+  } | null;
   filter: 'all' | 'active' | 'completed';
   todos: Todo[];
 }
@@ -19,40 +32,40 @@ export interface TodosState {
 export class TodosStore extends ComponentStore<TodosState> {
   todosService = inject(TodosService);
 
+  readonly vm$ = this.select((s) => ({
+    ...s,
+    completedCount: s.todos.filter((todo) => todo.isCompleted).length,
+    inCompletedCount: s.todos.filter((todo) => !todo.isCompleted).length,
+  }));
   readonly todos$ = this.select((s) => s.todos);
-  readonly filter$ = this.select((s) => s.filter);
-  readonly isLoading$ = this.select((s) => s.isLoading);
 
   constructor() {
     super({
       isLoading: false,
-      error: '',
+      error: null,
       filter: 'all',
       todos: [],
     });
-    this.fetchEffect(this.filter$);
   }
 
-  readonly addMovie = this.updater((state, todo: Todo) => ({
-    ...state,
-    todos: [...state.todos, todo],
-  }));
-
-  setFilter = this.updater((state, filter: 'all' | 'active' | 'completed') => ({
+  setFilter = this.updater((state, filter: Filter) => ({
     ...state,
     filter,
   }));
 
-  fetchEffect = this.effect<string>((filter$) =>
+  removeError = this.updater((state) => ({ ...state, error: null }));
+
+  fetchEffect = this.effect<Filter>((filter$) =>
     filter$.pipe(
-      tap(() => {
-        this.patchState({ isLoading: true });
+      tap((filter) => {
+        this.patchState({ isLoading: true, filter: filter });
       }),
       switchMap((filter) => {
-        return this.todosService.getTodos(filter).pipe(
+        return this.todosService.getTodos(filter || '').pipe(
           tapResponse({
             next: (todos) => this.patchState({ isLoading: false, todos }),
-            error: (error: HttpErrorResponse) => this.patchState({ error: error.message }),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({ error: { title: 'fail to fetch', details: error.message } }),
             finalize: () => this.patchState({ isLoading: false }),
           }),
         );
@@ -74,7 +87,13 @@ export class TodosStore extends ComponentStore<TodosState> {
                 isLoading: false,
                 todos: [...state.todos, todo],
               })),
-            error: (error: HttpErrorResponse) => this.patchState({ error: error.message }),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({
+                error: {
+                  title: `Save Fail!`,
+                  details: error.message,
+                },
+              }),
             finalize: () => this.patchState({ isLoading: false }),
           }),
         ),
@@ -93,7 +112,13 @@ export class TodosStore extends ComponentStore<TodosState> {
                 ...state,
                 todos: state.todos.map((td) => (td.id === todo.id ? todo : td)),
               })),
-            error: (error: HttpErrorResponse) => this.patchState({ error: error.message }),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({
+                error: {
+                  title: `Save Fail!`,
+                  details: error.message,
+                },
+              }),
             finalize: () => this.patchState({ isLoading: false }),
           }),
         ),
@@ -112,7 +137,8 @@ export class TodosStore extends ComponentStore<TodosState> {
                 ...state,
                 todos: state.todos.map((td) => (td.id === todo.id ? todo : td)),
               })),
-            error: (error: HttpErrorResponse) => this.patchState({ error: error.message }),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({ error: { title: 'Save Fail!', details: error.message } }),
             finalize: () => this.patchState({ isLoading: false }),
           }),
         ),
@@ -131,11 +157,62 @@ export class TodosStore extends ComponentStore<TodosState> {
                 ...state,
                 todos: state.todos.filter((todo) => todo.id !== id),
               })),
-            error: (error: HttpErrorResponse) => this.patchState({ error: error.message }),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({ error: { title: 'Delete Fail!', details: error.message } }),
             finalize: () => this.patchState({ isLoading: false }),
           }),
         ),
       ),
+    ),
+  );
+
+  clearCompletedEffect = this.effect((clear$) =>
+    clear$.pipe(
+      tap(() => this.patchState({ isLoading: true })),
+      switchMap(() =>
+        this.todosService.clearCompleted().pipe(
+          tapResponse({
+            next: () =>
+              this.setState((state) => ({
+                ...state,
+                todos: state.todos.filter((todo) => !todo.isCompleted),
+              })),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({ error: { title: 'Delete Fail!', details: error.message } }),
+            finalize: () => this.patchState({ isLoading: false }),
+          }),
+        ),
+      ),
+    ),
+  );
+
+  completedAllEffect = this.effect<boolean>((isCompleted$) =>
+    isCompleted$.pipe(
+      tap(() => this.patchState({ isLoading: true })),
+      withLatestFrom(this.todos$),
+      switchMap(([isCompleted, todos]) => {
+        const toggleCompletedRequests = todos.reduce<Observable<Todo>[]>((requests, todo) => {
+          if (todo.isCompleted !== isCompleted) {
+            requests.push(this.todosService.toggleCompleted(todo.id));
+          }
+          return requests;
+        }, []);
+        return merge(...toggleCompletedRequests).pipe(
+          tapResponse({
+            next: (todo) =>
+              this.setState((state) => ({
+                ...state,
+                todos: state.todos.map((td) => (td.id === todo.id ? todo : td)),
+              })),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({ error: { title: 'Delete Fail!', details: error.message } }),
+          }),
+          last(),
+          tap(() => {
+            this.patchState({ isLoading: false });
+          }),
+        );
+      }),
     ),
   );
 }

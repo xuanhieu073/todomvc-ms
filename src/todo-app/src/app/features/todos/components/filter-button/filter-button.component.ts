@@ -4,12 +4,15 @@ import { TodosStore } from '../../todos.store';
 @Component({
   selector: 'app-filter-button',
   imports: [],
-  template: ` <button class="rounded-sm px-2 text-sm border-green-700" [class.active]="isActive()">
+  template: ` <button
+    class="border rounded-sm px-2 text-sm cursor-pointer border-white hover:border-green-500"
+    [class.active]="isActive()"
+  >
     {{ text() }}
   </button>`,
   styles: `
     .active {
-      @apply border;
+      border-color: var(--color-green-700);
     }
   `,
 })

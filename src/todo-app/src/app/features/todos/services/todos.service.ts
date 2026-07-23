@@ -1,8 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import { Todo } from '../models/todo';
-import { CreateTodoRequest } from '../models/createTodoRequest';
-import { UpdateTodoRequest } from '../models/updateTodoRequest';
+import { CreateTodoRequest } from '../models/create-todo-request';
+import { UpdateTodoRequest } from '../models/update-todo-request';
+import { delay } from 'rxjs';
 
 @Service()
 export class TodosService {
@@ -11,7 +12,7 @@ export class TodosService {
 
   getTodos(filter: string = '') {
     return filter
-      ? this.http.get<Todo[]>(`${this.apiUrl}/bff/todos`, { params: { filter } })
+      ? this.http.get<Todo[]>(`${this.apiUrl}/bff/todos`, { params: { filter } }).pipe(delay(400))
       : this.http.get<Todo[]>(`${this.apiUrl}/bff/todos`);
   }
 
