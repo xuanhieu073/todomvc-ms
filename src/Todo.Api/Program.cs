@@ -24,17 +24,6 @@ await DB.InitAsync("TodoApp", new MongoClientSettings()
     Credential = MongoCredential.CreateCredential("admin", "root", "example")
 });
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy(name: "Todo.Bff",
-                        policy =>
-                        {
-                            policy.WithOrigins("http://localhost:5268")
-                                .AllowAnyHeader()
-                                .AllowAnyMethod();
-                        });
-});
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
