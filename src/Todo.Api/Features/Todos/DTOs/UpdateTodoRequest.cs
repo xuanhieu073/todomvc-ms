@@ -1,4 +1,4 @@
-﻿namespace Todo.Api.DTOs
+﻿namespace Todo.Api.Features.Todos.DTOs
 {
     public class UpdateTodoRequest
     {

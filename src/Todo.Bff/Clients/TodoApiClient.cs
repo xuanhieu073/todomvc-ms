@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using System.Text;
 using System.Text.Json;
-using Todo.Bff.Common;
-using Todo.Bff.DTOs;
+using Todo.Bff.Features.Todos.Common;
+using Todo.Bff.Features.Todos.DTOs;
 
 namespace Todo.Bff.Clients
 {

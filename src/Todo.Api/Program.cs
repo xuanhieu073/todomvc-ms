@@ -2,10 +2,10 @@ using Carter;
 using FluentValidation;
 using MongoDB.Driver;
 using MongoDB.Entities;
-using Todo.Api.DTOs;
-using Todo.Api.Repository;
-using Todo.Api.Repository.Interfaces;
-using Todo.Api.Validators;
+using Todo.Api.Features.Todos.DTOs;
+using Todo.Api.Features.Todos.Repository;
+using Todo.Api.Features.Todos.Repository.Interfaces;
+using Todo.Api.Features.Todos.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 

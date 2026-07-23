@@ -1,6 +1,6 @@
 ﻿using MongoDB.Entities;
 
-namespace Todo.Api.Entities
+namespace Todo.Api.Features.Todos.Entities
 {
     public class TodoItem : Entity   // ID string do MongoDB.Entities sinh
     {

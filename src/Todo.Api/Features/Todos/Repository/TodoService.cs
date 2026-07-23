@@ -2,11 +2,11 @@
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using MongoDB.Entities;
-using Todo.Api.DTOs;
-using Todo.Api.Entities;
-using Todo.Api.Repository.Interfaces;
+using Todo.Api.Features.Todos.DTOs;
+using Todo.Api.Features.Todos.Entities;
+using Todo.Api.Features.Todos.Repository.Interfaces;
 
-namespace Todo.Api.Repository
+namespace Todo.Api.Features.Todos.Repository
 {
     public class TodoService : ITodoService
     {

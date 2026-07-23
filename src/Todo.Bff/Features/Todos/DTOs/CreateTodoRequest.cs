@@ -1,4 +1,4 @@
-﻿namespace Todo.Bff.DTOs
+﻿namespace Todo.Bff.Features.Todos.DTOs
 {
     public class CreateTodoRequest
     {

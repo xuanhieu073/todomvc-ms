@@ -1,9 +1,9 @@
 ﻿using Carter;
 using Carter.Request;
 using Todo.Bff.Clients;
-using Todo.Bff.DTOs;
+using Todo.Bff.Features.Todos.DTOs;
 
-namespace Todo.Bff.Modules
+namespace Todo.Bff.Features.Todos.Modules
 {
     public class BffTodosModule : ICarterModule
     {

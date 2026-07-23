@@ -2,10 +2,10 @@ using Carter;
 using Carter.Request;
 using FluentValidation;
 using FluentValidation.Results;
-using Todo.Api.DTOs;
-using Todo.Api.Repository.Interfaces;
+using Todo.Api.Features.Todos.DTOs;
+using Todo.Api.Features.Todos.Repository.Interfaces;
 
-namespace Todo.Api.Modules;
+namespace Todo.Api.Features.Todos.Modules;
 
 public class TodoModule : ICarterModule
 {
