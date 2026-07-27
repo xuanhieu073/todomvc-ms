@@ -1,5 +1,4 @@
-﻿
-namespace Todo.Bff.Common
+﻿namespace Todo.Bff.Features.Todos.Common
 {
     public abstract class ApiResult
     {

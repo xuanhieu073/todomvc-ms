@@ -75,7 +75,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
       }
 
       @if (vm.error) {
-        <app-error-message [title]="vm.error.title" (onDataSent)="CloseNofity($event)" />
+        <app-error-message [title]="vm.error.title" (onClose)="CloseNofity($event)" />
       }
     }
   </div>`,

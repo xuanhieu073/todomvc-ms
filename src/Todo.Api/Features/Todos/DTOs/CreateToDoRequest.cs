@@ -1,6 +1,6 @@
 ﻿namespace Todo.Api.Features.Todos.DTOs
 {
-    public class CreateToDoRequest
+    public class CreateTodoRequest
     {
         public string Title { get; set; } = "";
     }

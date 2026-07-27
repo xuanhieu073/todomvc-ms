@@ -3,7 +3,7 @@ using Todo.Api.Features.Todos.DTOs;
 
 namespace Todo.Api.Features.Todos.Validators
 {
-    public class CreateTodoRequestValidator : AbstractValidator<CreateToDoRequest>
+    public class CreateTodoRequestValidator : AbstractValidator<CreateTodoRequest>
     {
         public CreateTodoRequestValidator()
         {

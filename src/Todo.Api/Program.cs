@@ -2,9 +2,8 @@ using Carter;
 using FluentValidation;
 using MongoDB.Driver;
 using MongoDB.Entities;
+using Todo.Api.Features.Reminders;
 using Todo.Api.Features.Todos.DTOs;
-using Todo.Api.Features.Todos.Repository;
-using Todo.Api.Features.Todos.Repository.Interfaces;
 using Todo.Api.Features.Todos.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,15 +13,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddCarter();
 builder.Services.AddAutoMapper(typeof(MappingProfiles));
-builder.Services.AddScoped<ITodoService, TodoService>();
-builder.Services.AddScoped<IValidator<CreateToDoRequest>, CreateTodoRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateTodoRequest>, CreateTodoRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateTodoRequest>, UpdateTodoRequestValidator>();
+builder.Services.AddMediatR(config =>
+    config.RegisterServicesFromAssembly(typeof(Program).Assembly));
+//builder.Services.AddHostedService<RemindersScanners>();
 
-await DB.InitAsync("TodoApp", new MongoClientSettings()
-{
-    Server = new MongoServerAddress("localhost", 27017),
-    Credential = MongoCredential.CreateCredential("admin", "root", "example")
-});
+await DB.InitAsync("TodoApp",
+  MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 

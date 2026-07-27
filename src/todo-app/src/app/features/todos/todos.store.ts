@@ -65,7 +65,7 @@ export class TodosStore extends ComponentStore<TodosState> {
           tapResponse({
             next: (todos) => this.patchState({ isLoading: false, todos }),
             error: (error: HttpErrorResponse) =>
-              this.patchState({ error: { title: 'fail to fetch', details: error.message } }),
+              this.patchState({ error: { title: 'Fail to fetch', details: error.message } }),
             finalize: () => this.patchState({ isLoading: false }),
           }),
         );
@@ -115,7 +115,7 @@ export class TodosStore extends ComponentStore<TodosState> {
             error: (error: HttpErrorResponse) =>
               this.patchState({
                 error: {
-                  title: `Save Fail!`,
+                  title: `Save Fail!: ${updateTodoRequest.title}`,
                   details: error.message,
                 },
               }),
