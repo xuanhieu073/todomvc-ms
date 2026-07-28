@@ -11,19 +11,11 @@ namespace Todo.Api.Features.Todos.Endpoints.Create
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapPost("api/todos", async (IValidator<CreateTodoRequest> _validator, CreateTodoRequest createTodoRequest, ISender sender) =>
+            app.MapPost("api/todos", async (CreateTodoRequest createTodoRequest, ISender sender) =>
             {
-                ValidationResult validationResults = _validator.Validate(createTodoRequest);
-                if (!validationResults.IsValid)
-                {
-                    return Results.BadRequest(validationResults.Errors);
-                }
-                else
-                { 
-                    var command = new CreateTodoCommand(createTodoRequest);
-                    var result = await sender.Send(command);
-                    return Results.Ok(result);
-                }
+                var command = new CreateTodoCommand(createTodoRequest);
+                var result = await sender.Send(command);
+                return Results.Ok(result);
             });
         }
     }

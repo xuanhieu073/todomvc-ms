@@ -15,7 +15,7 @@ POST {{Todo.Api_HostAddress}}/api/todos
 Content-Type: application/json
 
 {
-  "Title": "React"
+  "Title": ""
 }
 
 ###
@@ -24,7 +24,7 @@ PUT {{Todo.Api_HostAddress}}/api/todos/6a66d2e1fe1463888453cda9
 Content-Type: application/json
 
 {
-  "Title": "Angular",
+  "Title": "",
   "isCompleted": true
 }
 

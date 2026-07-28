@@ -6,6 +6,11 @@ using Todo.Bff.Features.Todos.DTOs;
 
 namespace Todo.Bff.Clients
 {
+    class Error
+    {
+        public List<TodoPropertiesError>? errors { get; set; }
+    }
+
     public class TodoApiClient
     {
         private readonly HttpClient _http;
@@ -19,20 +24,20 @@ namespace Todo.Bff.Clients
         public async Task<ApiResult> GetTodosAsync(string? filter, CancellationToken cancellationToken = default)
         {
             return filter switch
-           {
-               null => await GetAsync<List<TodoDto>>("/api/todos", cancellationToken),
-               _ => await GetAsync<List<TodoDto>>($"/api/todos?filter={filter}", cancellationToken),
-           };
+            {
+                null => await GetAsync<List<TodoDto>>("/api/todos", cancellationToken),
+                _ => await GetAsync<List<TodoDto>>($"/api/todos?filter={filter}", cancellationToken),
+            };
         }
 
         public Task<ApiResult> GetTodoAsync(string Id, CancellationToken ct = default)
         => GetAsync<TodoDto>($"/api/todos/{Id}", ct);
 
         public Task<ApiResult> CreateTodoAsync(CreateTodoRequest dto, CancellationToken ct = default)
-        => CreateAsync<CreateTodoRequest, TodoDto, List<TodoPropertiesError>>("/api/todos", dto, ct);
+        => CreateAsync<CreateTodoRequest, TodoDto, Error>("/api/todos", dto, ct);
 
         public Task<ApiResult> UpdateTodoAsync(string Id, UpdateTodoRequest updateTodoRequest, CancellationToken cancellationToken = default)
-            => UpdateAsync<UpdateTodoRequest, TodoDto, List<TodoPropertiesError>>($"/api/todos/{Id}", updateTodoRequest, cancellationToken);
+            => UpdateAsync<UpdateTodoRequest, TodoDto, Error>($"/api/todos/{Id}", updateTodoRequest, cancellationToken);
 
         public Task<ApiResult> ToggleIsCompleted(string Id, CancellationToken cancellationToken = default)
             => SendAsync<TodoDto, string>(HttpMethod.Patch, $"/api/todos/{Id}/toggle", null, cancellationToken);
@@ -107,12 +112,12 @@ namespace Todo.Bff.Clients
                         return ApiErrorResult<string>.Failure(errorMessage, 404, errorMessage ?? "", "NOT_FOUND");
                     }
                 case HttpStatusCode.InternalServerError:
-                    return ApiErrorResult<string>.Failure("Internal Server Error",500, "Internal Server Error", "INTERNAL_SERVER_ERROR");
+                    return ApiErrorResult<string>.Failure("Internal Server Error", 500, "Internal Server Error", "INTERNAL_SERVER_ERROR");
                 case HttpStatusCode.BadGateway:
                 case HttpStatusCode.ServiceUnavailable:
 
                 default:
-                    return ApiErrorResult<string>.Failure("Unknow Error",(int)response.StatusCode, "Unknow Error", "UNKNOWN");
+                    return ApiErrorResult<string>.Failure("Unknow Error", (int)response.StatusCode, "Unknow Error", "UNKNOWN");
             }
         }
 

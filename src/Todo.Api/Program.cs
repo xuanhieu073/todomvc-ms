@@ -4,6 +4,7 @@ using MongoDB.Driver;
 using MongoDB.Entities;
 using Todo.Api.Features.Reminders;
 using Todo.Api.Features.Todos.DTOs;
+using Todo.Api.Features.Todos.Middlewares;
 using Todo.Api.Features.Todos.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,10 +14,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddCarter();
 builder.Services.AddAutoMapper(typeof(MappingProfiles));
-builder.Services.AddScoped<IValidator<CreateTodoRequest>, CreateTodoRequestValidator>();
-builder.Services.AddScoped<IValidator<UpdateTodoRequest>, UpdateTodoRequestValidator>();
 builder.Services.AddMediatR(config =>
-    config.RegisterServicesFromAssembly(typeof(Program).Assembly));
+{
+    config.RegisterServicesFromAssembly(typeof(Program).Assembly);
+    config.AddOpenBehavior(typeof(ValidationBehavior<,>));
+});
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 //builder.Services.AddHostedService<RemindersScanners>();
 
 await DB.InitAsync("TodoApp",
@@ -33,4 +36,5 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapCarter();
+app.UseMiddleware<ValidationExceptionHandlingMiddleware>();
 app.Run();

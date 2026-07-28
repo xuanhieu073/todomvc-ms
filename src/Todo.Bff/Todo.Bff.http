@@ -14,7 +14,7 @@ POST {{Todo.Bff_HostAddress}}/bff/todos
 Content-Type: application/json
 
 {
-  "title": "React"
+  "title": ""
 }
 
 ###
@@ -23,7 +23,7 @@ PUT {{Todo.Bff_HostAddress}}/bff/todos/6a66de1cc7786cefc600c37a
 Content-Type: application/json
 
 {
-  "title": "Angular",
+  "title": "",
   "isCompleted": true
 }
 
