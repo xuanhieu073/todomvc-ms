@@ -4,11 +4,12 @@ import { Todo } from '../models/todo';
 import { CreateTodoRequest } from '../models/create-todo-request';
 import { UpdateTodoRequest } from '../models/update-todo-request';
 import { delay } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 @Service()
 export class TodosService {
   private readonly http = inject(HttpClient);
-  private apiUrl = 'https://localhost:7160';
+  private apiUrl = environment.apiUrl;
 
   getTodos(filter: string = '') {
     return filter

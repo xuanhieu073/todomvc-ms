@@ -9,7 +9,7 @@ public class UpdateTodoEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPut("/{id}", async (string Id, UpdateTodoRequest updateTodoRequest, ISender sender) =>
+        app.MapPut("/bff/todos/{id}", async (string Id, UpdateTodoRequest updateTodoRequest, ISender sender) =>
         {
             var command = new UpdateTodoCommand(Id, updateTodoRequest);
             return await sender.Send(command);

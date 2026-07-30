@@ -1,7 +1,10 @@
 import { ComponentStore } from '@ngrx/component-store';
 import { Reminder } from '../todos/models/reminder';
-import { Injectable } from '@angular/core';
-import { tap } from 'rxjs';
+import { inject, Injectable } from '@angular/core';
+import { switchMap, tap } from 'rxjs';
+import { RemindersService } from './services/reminders.service';
+import { tapResponse } from '@ngrx/operators';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export interface RemindersState {
   isLoading: boolean;
@@ -14,6 +17,8 @@ export interface RemindersState {
 
 @Injectable({ providedIn: 'root' })
 export class RemindersStore extends ComponentStore<RemindersState> {
+  reminderSerivce = inject(RemindersService);
+
   readonly pendingReminders$ = this.select((s) => s.pendingReminders);
 
   constructor() {
@@ -50,16 +55,51 @@ export class RemindersStore extends ComponentStore<RemindersState> {
     reminders.pipe(
       tap((reminders) => {
         console.log('saving pending reminders', reminders);
-        if (reminders.length) localStorage.setItem('pendingReminders', JSON.stringify(reminders));
+        localStorage.setItem('pendingReminders', JSON.stringify(reminders));
       }),
     ),
   );
 
-  snoozeReminderEffect = this.effect<{ Id: string; snoozeTime: string }>((sonozeInfo$) =>
+  snoozeReminderEffect = this.effect<{ Id: string; minutes: number }>((sonozeInfo$) =>
     sonozeInfo$.pipe(
       tap((snoozeInfo) => {
         console.log(snoozeInfo);
+        this.patchState({ isLoading: true });
       }),
+      switchMap(({ Id, minutes }) =>
+        this.reminderSerivce.snoozeReminder(Id, minutes).pipe(
+          tapResponse({
+            next: (reminder) =>
+              this.setState((state) => ({
+                ...state,
+                pendingReminders: state.pendingReminders.filter((r) => r.id !== reminder.id),
+              })),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({ error: { title: 'Fail to fetch', details: error.message } }),
+            finalize: () => this.patchState({ isLoading: false }),
+          }),
+        ),
+      ),
+    ),
+  );
+
+  dimissReminderEffect = this.effect<string>((Id$) =>
+    Id$.pipe(
+      tap(() => this.patchState({ isLoading: true })),
+      switchMap((Id) =>
+        this.reminderSerivce.dimissReminder(Id).pipe(
+          tapResponse({
+            next: (reminder) =>
+              this.setState((state) => ({
+                ...state,
+                pendingReminders: state.pendingReminders.filter((r) => r.id != reminder.id),
+              })),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({ error: { title: 'Fail to fetch', details: error.message } }),
+            finalize: () => this.patchState({ isLoading: false }),
+          }),
+        ),
+      ),
     ),
   );
 }

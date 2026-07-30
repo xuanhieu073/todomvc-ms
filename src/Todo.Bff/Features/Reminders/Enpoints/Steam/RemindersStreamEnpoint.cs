@@ -1,13 +1,11 @@
 using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Threading.Channels;
 using Carter;
 using MediatR;
 using Todo.Bff.Features.Reminders.Application.Commands;
 using Todo.Bff.Features.Reminders.Application.Queries;
 using Todo.Bff.Features.Reminders.DTOs;
 
-namespace Todo.Bff.Features.Reminders;
+namespace Todo.Bff.Features.Reminders.Endpoint.Stream;
 
 public class RemindersStream : ICarterModule
 {
@@ -20,7 +18,7 @@ public class RemindersStream : ICarterModule
         });
 
         // A helper method generating fake real-time event objects 
-        async static IAsyncEnumerable<List<ReminderDto>> GetServerEventsAsync(
+        async static IAsyncEnumerable<List<PendingReminderDto>> GetServerEventsAsync(
             ISender sender,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
@@ -39,7 +37,7 @@ public class RemindersStream : ICarterModule
                     await sender.Send(command);
                 }
 
-                yield return new List<ReminderDto>(response);
+                yield return new List<PendingReminderDto>(response);
             }
         }
     }

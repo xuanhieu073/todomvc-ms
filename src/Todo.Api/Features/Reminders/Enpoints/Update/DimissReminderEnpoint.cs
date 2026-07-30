@@ -7,10 +7,10 @@ public class DimissReminderEnpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/reminders/{id}/dimiss", (string Id, ISender sender) =>
+        app.MapPatch("/api/reminders/{id}/dimiss", async (string Id, ISender sender) =>
         {
             var command = new DimissReminderCommand(Id);
-            return sender.Send(command);
+            return await sender.Send(command);
         });
     }
 }

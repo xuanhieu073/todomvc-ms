@@ -1,6 +1,7 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { ActionButtonComponent } from './action-button.component';
 import { Reminder } from '../../todos/models/reminder';
+import { RemindersStore } from '../reminders.store';
 
 @Component({
   selector: 'app-reminder-item',
@@ -9,8 +10,8 @@ import { Reminder } from '../../todos/models/reminder';
       <ng-content></ng-content>
     </p>
     <div class="flex gap-2 mt-2">
-      <app-action-button (click)="Snooze('1m')">💤1m</app-action-button>
-      <app-action-button (click)="Snooze('1h')">💤1h</app-action-button>
+      <app-action-button (click)="Snooze(1)">💤1m</app-action-button>
+      <app-action-button (click)="Snooze(60)">💤1h</app-action-button>
       <app-action-button class="ml-auto" (click)="Dimiss()">❌</app-action-button>
     </div>
   </li>`,
@@ -28,14 +29,16 @@ import { Reminder } from '../../todos/models/reminder';
   `,
 })
 export class ReminderItemComponent {
+  private readonly remindersStore = inject(RemindersStore);
+
   reminder = input.required<Reminder>();
 
-  Snooze(time: string) {
+  Snooze(minutes: number) {
     const Id = this.reminder().id;
-    console.log({ Id, time });
+    this.remindersStore.snoozeReminderEffect({ Id, minutes });
   }
 
   Dimiss() {
-    console.log('dimiss');
+    this.remindersStore.dimissReminderEffect(this.reminder().id);
   }
 }

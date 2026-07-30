@@ -14,14 +14,16 @@ import { TodosStore } from '../../todos.store';
 import { UpdateTodoRequest } from '../../models/update-todo-request';
 import { ClickOutsideDirective } from './todo-item.clickoutside.directive';
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-todo-item',
-  imports: [ClickOutsideDirective, FormsModule, ReactiveFormsModule],
+  imports: [ClickOutsideDirective, FormsModule, ReactiveFormsModule, DatePipe],
   template: `
     <div
       class="todo-item border border-gray-200 px-4 bg-white flex gap-4"
       [class.py-4]="!inEditMode()"
+      (clickOutside)="UpdateTodo($event)"
     >
       @if (!inEditMode()) {
         <button
@@ -43,10 +45,23 @@ import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angu
           type="text"
           #editTitle
           (keydown.enter)="UpdateTodo($event)"
-          (clickOutside)="UpdateTodo($event)"
           (keydown.esc)="CancelEdit()"
           [formControl]="updateTodoTitle"
         />
+
+        <input
+          class="outline-green-600 px-6 py-4"
+          type="datetime-local"
+          id="appointment"
+          name="appointment"
+          [formControl]="updateTodoDueAt"
+          (keydown.enter)="UpdateTodo($event)"
+        />
+
+        <button (click)="UpdateTodo($event)">✔️</button>
+      }
+      @if (!inEditMode()) {
+        <p>{{ todo().dueAt | date: 'short' }}</p>
       }
       @if (!inEditMode()) {
         <button class="hidden delete-button ml-auto" (click)="DeleteTodo(todo().id)">❌</button>
@@ -62,12 +77,14 @@ import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angu
 export class TodoItemComponent implements AfterViewInit {
   todo = input.required<Todo>();
   todosStore = inject(TodosStore);
-  // title = model('');
 
   editTitleInput = viewChild<ElementRef<HTMLInputElement>>('editTitle');
   inEditMode = signal(false);
   updateTodoTitle = new FormControl('', {
     validators: [Validators.required, Validators.min(2), Validators.maxLength(200)],
+  });
+  updateTodoDueAt = new FormControl<Date>(new Date(), {
+    validators: [Validators.required],
   });
 
   constructor() {
@@ -80,7 +97,10 @@ export class TodoItemComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     // this.title.set(this.todo().title);
+    console.log(this.todo().dueAt);
+    const dateTimeLocal: any = this.todo().dueAt.toString().substring(0, 16);
     this.updateTodoTitle.setValue(this.todo().title);
+    this.updateTodoDueAt.setValue(dateTimeLocal);
   }
 
   ToggleEditMode() {
@@ -94,11 +114,12 @@ export class TodoItemComponent implements AfterViewInit {
   }
 
   UpdateTodo(event: Event) {
-    if (this.updateTodoTitle.valid) {
+    if (this.updateTodoTitle.valid && this.updateTodoDueAt.valid) {
       const updateTodoRequest: UpdateTodoRequest = {
         // title: this.title(),
         title: this.updateTodoTitle.value!,
         isCompleted: this.todo().isCompleted,
+        dueAt: this.updateTodoDueAt.value!,
       };
       this.todosStore.updateEffect({ id: this.todo().id, updateTodoRequest });
       this.inEditMode.set(false);

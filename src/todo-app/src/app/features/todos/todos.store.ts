@@ -32,11 +32,13 @@ export interface TodosState {
 export class TodosStore extends ComponentStore<TodosState> {
   todosService = inject(TodosService);
 
-  readonly vm$ = this.select((s) => ({
-    ...s,
-    completedCount: s.todos.filter((todo) => todo.isCompleted).length,
-    inCompletedCount: s.todos.filter((todo) => !todo.isCompleted).length,
-  }));
+  readonly filter$ = this.select((s) => s.filter);
+  readonly isLoading$ = this.select((s) => s.isLoading);
+  readonly error$ = this.select((s) => s.error);
+  readonly completedCount$ = this.select((s) => s.todos.filter((todo) => todo.isCompleted).length);
+  readonly inCompletedCount$ = this.select(
+    (s) => s.todos.filter((todo) => !todo.isCompleted).length,
+  );
   readonly todos$ = this.select((s) => s.todos);
 
   constructor() {

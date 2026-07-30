@@ -8,7 +8,7 @@ public class DeleteTodoEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapDelete("{id}", async (string Id, ISender sender) =>
+        app.MapDelete("/bff/todos/{id}", async (string Id, ISender sender) =>
         {
             var command = new DeleteTodoCommand(Id);
             return await sender.Send(command);

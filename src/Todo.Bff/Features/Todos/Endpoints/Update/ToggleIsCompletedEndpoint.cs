@@ -11,7 +11,8 @@ public class ToggleIsCompletedEnpoint : ICarterModule
         app.MapPatch("/bff/todos/{id}", async (string Id, ISender sender) =>
         {
             var command = new ToggleIsCompletedCommand(Id);
-            return await sender.Send(command);
+            var response = await sender.Send(command);
+            return response.ToHttpResponse();
         });
     }
 }

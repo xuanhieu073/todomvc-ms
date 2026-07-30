@@ -9,17 +9,19 @@ import { Reminder } from '../todos/models/reminder';
   imports: [ReminderItemComponent, AsyncPipe],
   template: `
     <div class="px-6 flex flex-col gap-4 overflow-y-auto overflow-x-hidden">
-      <div class="flex justify-end w-full text-2xl">🔔</div>
-      <button type="button" class="toggle-btn" (click)="reandomize()">Randomize</button>
-      <ul class="items">
-        @if (pendingReminders$ | async; as pendingReminders) {
+      @if (pendingReminders$ | async; as pendingReminders) {
+        <div class="flex justify-end w-full text-2xl">
+          <span>{{ pendingReminders.length }}</span>
+          <span>🔔</span>
+        </div>
+        <ul class="items">
           @for (reminder of pendingReminders; track reminder.id) {
             <app-reminder-item [reminder]="reminder" class="item-container" animate.leave="fade">{{
-              reminder.todoId
+              reminder.title
             }}</app-reminder-item>
           }
-        }
-      </ul>
+        </ul>
+      }
     </div>
   `,
   styles: `
@@ -52,20 +54,6 @@ export class RemindersComponent implements OnDestroy {
   pendingReminders$ = this.remindersStore.pendingReminders$;
   items = ['stuff', 'things', 'cheese', 'paper'];
 
-  reandomize() {
-    // const randItems = [...this.items];
-    // const newItems = [];
-    // for (let i of this.items) {
-    //   const max: number = this.items.length - newItems.length;
-    //   const randNum = Math.floor(Math.random() * max);
-    //   newItems.push(...randItems.splice(randNum, 1));
-    // }
-    // this.items = newItems;
-    // this.items = this.items.filter((item) => item !== 'stuff');
-    this.items.splice(0, 1);
-    this.items = [...this.items, 'table' + Math.random()];
-  }
-
   eventSource: EventSource;
   handleMessage: (event: MessageEvent) => void;
 
@@ -85,6 +73,9 @@ export class RemindersComponent implements OnDestroy {
 
     // Handle custom named events (like 'weatherUpdate' declared in our .NET 10 code)
     this.eventSource.addEventListener('remindersUpdate', this.handleMessage);
+    this.eventSource.addEventListener('removeDimiss', (event) => {
+      console.log('remove reminder', event.data);
+    });
 
     // Capture network or connectivity issues
     this.eventSource.onerror = (error) => {

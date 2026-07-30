@@ -28,29 +28,29 @@ namespace Todo.Bff.Features.Todos.Modules
             //     return response.ToHttpResponse();
             // });
 
-            apiGroup.MapPut("/{id}", async (TodoApiClient _apiClient, string Id, UpdateTodoRequest updateTodoRequest) =>
-            {
-                var response = await _apiClient.UpdateTodoAsync(Id, updateTodoRequest);
-                return response.ToHttpResponse();
-            });
+            // apiGroup.MapPut("/{id}", async (TodoApiClient _apiClient, string Id, UpdateTodoRequest updateTodoRequest) =>
+            // {
+            //     var response = await _apiClient.UpdateTodoAsync(Id, updateTodoRequest);
+            //     return response.ToHttpResponse();
+            // });
 
-            apiGroup.MapPatch("{id}/toggle", async (TodoApiClient _apiClient, string Id) =>
-            {
-                var response = await _apiClient.ToggleIsCompleted(Id);
-                return response.ToHttpResponse();
-            });
+            // apiGroup.MapPatch("{id}/toggle", async (TodoApiClient _apiClient, string Id) =>
+            // {
+            //     var response = await _apiClient.ToggleIsCompleted(Id);
+            //     return response.ToHttpResponse();
+            // });
 
-            apiGroup.MapDelete("{id}", async (TodoApiClient _apiClient, string Id) =>
-            {
-                var response = await _apiClient.DelteTodo(Id);
-                return response.ToHttpResponse();
-            });
+            // apiGroup.MapDelete("{id}", async (TodoApiClient _apiClient, string Id) =>
+            // {
+            //     var response = await _apiClient.DelteTodo(Id);
+            //     return response.ToHttpResponse();
+            // });
 
-            apiGroup.MapDelete("/completed", async (TodoApiClient _apiClient) =>
-            {
-                var response = await _apiClient.ClearCompleted();
-                return response.ToHttpResponse();
-            });
+            // apiGroup.MapDelete("/completed", async (TodoApiClient _apiClient) =>
+            // {
+            //     var response = await _apiClient.ClearCompleted();
+            //     return response.ToHttpResponse();
+            // });
         }
     }
 }

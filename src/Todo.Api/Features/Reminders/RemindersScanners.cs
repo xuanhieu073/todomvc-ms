@@ -10,7 +10,7 @@ namespace Todo.Api.Features.Reminders
     {
         private readonly ILogger<RemindersScanners> _logger;
         private readonly IMapper _mapper;
-        private readonly TimeSpan _delayInterval = TimeSpan.FromSeconds(30);
+        private readonly TimeSpan _delayInterval = TimeSpan.FromSeconds(3);
 
         public RemindersScanners(ILogger<RemindersScanners> logger, IMapper mapper)
         {
@@ -77,7 +77,12 @@ namespace Todo.Api.Features.Reminders
             var overSnoozedReminders = await DB.Collection<Reminder>().AsQueryable().Where(r => r.State == ReminderState.Snoozed && r.SnoozeUntil <= now).ToListAsync();
             if (overSnoozedReminders.Any())
             {
-                var remindersSwitchToPeding = overSnoozedReminders.Select(r => _mapper.Map<Reminder, Reminder>(new Reminder { State = ReminderState.Pending }));
+                foreach (var reminder in overSnoozedReminders)
+                {
+                    reminder.State = ReminderState.Pending;
+                    reminder.FiredAt = null;
+                }
+                await overSnoozedReminders.SaveAsync();
             }
 
             var remindersNeedToDimiss = await DB.Collection<Reminder>()
@@ -92,11 +97,17 @@ namespace Todo.Api.Features.Reminders
                     x => x.todos.DefaultIfEmpty(),
                     (x, todo) => new { x.reminder, todo }
                 )
-                .Where(x => x.todo == null)
+                .Where(x => x.todo == null || x.todo.IsCompleted == true)
+                .Select(x => x.reminder)
                 .ToListAsync();
+
             if (remindersNeedToDimiss.Any())
             {
-                var reminderIdsNeedToRemove = remindersNeedToDimiss.Select(r => _mapper.Map<Reminder, Reminder>(new Reminder { State = ReminderState.Dismissed }));
+                foreach (var reminder in remindersNeedToDimiss)
+                {
+                    reminder.State = ReminderState.Dismissed;
+                }
+                await remindersNeedToDimiss.SaveAsync();
             }
         }
     }

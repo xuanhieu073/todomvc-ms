@@ -8,7 +8,7 @@ public class ClearCompleted : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/completed", async (ISender sender) =>
+        app.MapDelete("/bff/todos/completed", async (ISender sender) =>
         {
             var command = new ClearCompletedCommand();
             return await sender.Send(command);

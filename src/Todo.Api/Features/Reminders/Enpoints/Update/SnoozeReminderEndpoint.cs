@@ -8,9 +8,9 @@ public class SnoozeReminderEnpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/api/reminders/{id}/snooze", (string Id, ISender sender) =>
+        app.MapPatch("/api/reminders/{id}/snooze", (string Id, SnoozeReminderRequest request, ISender sender) =>
         {
-            var command = new SnoozeReminderCommand(Id);
+            var command = new SnoozeReminderCommand(Id, request.minutes);
             return sender.Send(command);
         });
     }

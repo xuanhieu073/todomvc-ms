@@ -11,9 +11,11 @@ public class SnoozeReminderHandler : IRequestHandler<SnoozeReminderCommand, Remi
         if (reminder != null)
         {
             reminder.State = ReminderState.Snoozed;
+            reminder.SnoozeUntil = DateTime.Now.AddSeconds(request.minutes);
             await reminder.SaveAsync();
             return reminder;
         }
+
         return null;
     }
 }

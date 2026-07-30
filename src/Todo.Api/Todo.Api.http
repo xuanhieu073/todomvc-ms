@@ -52,16 +52,22 @@ Accept: application/json
 
 ###
 
-GET {{Todo.Api_HostAddress}}/api/reminders/upcoming?within=ss24ss
+GET {{Todo.Api_HostAddress}}/api/reminders/upcoming?within=24h
 Accept: application/json
 
 ###
 
-PATCH {{Todo.Api_HostAddress}}/api/reminders
+PATCH {{Todo.Api_HostAddress}}/api/reminders/6a69cc8c944c533347e8bf94/dimiss
+Content-Type: application/json
+
+###
+
+POST {{Todo.Api_HostAddress}}/api/todos/query
 Content-Type: application/json
 
 {
-  "Title": "Angular",
-  "isCompleted": true,
-  "DueAt": "2026-07-29"
+  "filter": "{}",
+  "sortField": "CreatedAt",
+  "sortDescending": false,
+  "limit": 20
 }
