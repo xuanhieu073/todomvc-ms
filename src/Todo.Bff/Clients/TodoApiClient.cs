@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Text;
 using System.Text.Json;
-using Todo.Bff.Features.Todos.Common;
+using Todo.Bff.Features.Reminders.DTOs;
 using Todo.Bff.Features.Todos.DTOs;
 
 namespace Todo.Bff.Clients
@@ -48,6 +48,21 @@ namespace Todo.Bff.Clients
         public Task<ApiResult> ClearCompleted(CancellationToken cancellationToken = default)
            => DeleteAsync<string>($"/api/todos/completed", cancellationToken);
 
+        public async Task<ApiResult> GetPendingReminders(ReminderState state, CancellationToken cancellationToken = default)
+        {
+            return state switch
+            {
+                ReminderState.Pending => await GetAsync<List<ReminderDto>>($"/api/reminders?state=pending", cancellationToken),
+                ReminderState.Snoozed => await GetAsync<List<ReminderDto>>($"/api/reminders?state=snoozed", cancellationToken),
+                ReminderState.Dismissed => await GetAsync<List<ReminderDto>>($"/api/reminders?state=dismissed", cancellationToken),
+                _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+            };
+        }
+
+        public async Task<ApiResult> UpdateReminderFireAt(string Id, CancellationToken cancellationToken = default)
+        {
+            return await SendAsync<ReminderDto, string>(HttpMethod.Patch, $"/api/reminders/{Id}/update-fire-at", null, cancellationToken);
+        }
 
         private Task<ApiResult> CreateAsync<TRequest, TResponse, TError>(
             string path, TRequest body, CancellationToken ct = default)

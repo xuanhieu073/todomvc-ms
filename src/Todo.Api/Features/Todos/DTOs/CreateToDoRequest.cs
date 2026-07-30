@@ -3,5 +3,6 @@
     public class CreateTodoRequest
     {
         public string Title { get; set; } = "";
+        public DateTime? DueAt { get; set; }
     }
 }

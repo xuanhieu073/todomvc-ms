@@ -4,5 +4,6 @@
     {
         public string Title { get; set; } = string.Empty;
         public bool isCompleted { get; set; }
+        public DateTime DueAt { get; set; }
     }
 }

@@ -1,6 +1,12 @@
 ﻿namespace Todo.Api.Features.Reminders
 {
-    public class ReminderDtos
+    public class ReminderDto
     {
+        public string Id { get; set; }
+        public string TodoId { get; set; }
+        public DateTime DueAt { get; set; }
+        public ReminderState State { get; set; }
+        public DateTime? SnoozeUntil { get; set; }
+        public DateTime? FiredAt { get; set; }
     }
 }

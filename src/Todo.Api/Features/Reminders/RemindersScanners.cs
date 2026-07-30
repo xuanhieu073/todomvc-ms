@@ -10,7 +10,7 @@ namespace Todo.Api.Features.Reminders
     {
         private readonly ILogger<RemindersScanners> _logger;
         private readonly IMapper _mapper;
-        private readonly TimeSpan _delayInterval = TimeSpan.FromSeconds(1);
+        private readonly TimeSpan _delayInterval = TimeSpan.FromSeconds(30);
 
         public RemindersScanners(ILogger<RemindersScanners> logger, IMapper mapper)
         {
@@ -31,6 +31,15 @@ namespace Todo.Api.Features.Reminders
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error occurred during worker execution.");
+                }
+
+                try
+                {
+                    await Task.Delay(_delayInterval, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
             }
 
@@ -55,30 +64,40 @@ namespace Todo.Api.Features.Reminders
                     x => x.reminders.DefaultIfEmpty(),
                     (x, reminder) => new { x.todo, reminder }
                 )
-                .Where(x => x.todo.DueAt <= now && x.todo.IsCompleted == false && x.reminder == null)
+                .Where(x => (x.todo.DueAt <= now && x.todo.IsCompleted == false) && x.reminder == null)
                 .Select(x => x.todo)
                 .ToListAsync();
 
-            var newReminders = todosNeedToReminder.Select(td => new Reminder { TodoId = td.ID, State = ReminderState.Pending });
-            await DB.SaveAsync(newReminders);
+            if (todosNeedToReminder.Any())
+            {
+                var newReminders = todosNeedToReminder.Select(td => new Reminder { TodoId = td.ID, State = ReminderState.Pending, DueAt = td.DueAt });
+                await DB.SaveAsync(newReminders);
+            }
 
-            var overSnoozedReminder = await DB.Collection<Reminder>().AsQueryable().Where(r => r.State == ReminderState.Snoozed && r.SnoozeUntil <= now).ToListAsync();
-            overSnoozedReminder.Select(r => _mapper.Map<Reminder, Reminder>(new Reminder { State = ReminderState.Pending }));
+            var overSnoozedReminders = await DB.Collection<Reminder>().AsQueryable().Where(r => r.State == ReminderState.Snoozed && r.SnoozeUntil <= now).ToListAsync();
+            if (overSnoozedReminders.Any())
+            {
+                var remindersSwitchToPeding = overSnoozedReminders.Select(r => _mapper.Map<Reminder, Reminder>(new Reminder { State = ReminderState.Pending }));
+            }
 
-            var remindersNeedToRemove = await DB.Collection<Reminder>()
+            var remindersNeedToDimiss = await DB.Collection<Reminder>()
                 .AsQueryable()
                 .GroupJoin(
                     DB.Collection<TodoItem>(),
                     r => r.TodoId,
                     td => td.ID,
-                    (reminder, todo) => new { reminder, todo }
+                    (reminder, todos) => new { reminder, todos }
+                )
+                .SelectMany(
+                    x => x.todos.DefaultIfEmpty(),
+                    (x, todo) => new { x.reminder, todo }
                 )
                 .Where(x => x.todo == null)
                 .ToListAsync();
-            var reminderIdsNeedToRemove = remindersNeedToRemove.Select(x => x.reminder.ID);
-            await DB.DeleteAsync<Reminder>(reminderIdsNeedToRemove);
-
-            await Task.Delay(_delayInterval, cancellationToken);
+            if (remindersNeedToDimiss.Any())
+            {
+                var reminderIdsNeedToRemove = remindersNeedToDimiss.Select(r => _mapper.Map<Reminder, Reminder>(new Reminder { State = ReminderState.Dismissed }));
+            }
         }
     }
 }

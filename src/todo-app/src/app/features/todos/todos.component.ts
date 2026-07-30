@@ -1,8 +1,7 @@
-import { AsyncPipe } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { AsyncPipe, JsonPipe } from '@angular/common';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, take } from 'rxjs';
-import { FilterButtonComponent } from './components/filter-button/filter-button.component';
 import { TodoItemComponent } from './components/todo-item/todo-item.component';
 import { TodosService } from './services/todos.service';
 import { TodosStore } from './todos.store';
@@ -48,6 +47,13 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
             (keydown.enter)="CreateTodo($event)"
             [formControl]="newTodoTitle"
           />
+
+          <input
+            class="outline-green-600 px-6 py-4"
+            type="datetime-local"
+            id="appointment"
+            name="appointment"
+          />
         </div>
         @if (newTodoTitle.touched && newTodoTitle.hasError('maxlength')) {
           <div class="bg-white px-4 border border-gray-200">
@@ -85,11 +91,20 @@ export class TodosComponent implements OnInit {
   private readonly todosStore = inject(TodosStore);
   private readonly route = inject(ActivatedRoute);
 
+  // eventSource = new EventSource('https://localhost:7160/bff/reminders/stream');
+  // handleMessage = (event: MessageEvent) => {
+  //   console.log('SSE message received:', event.data);
+  //   this.remindersStore.addPendingReminder(event.data ? JSON.parse(event.data) : []);
+  // };
+
   todos$ = this.todosStore.todos$;
   vm$ = this.todosStore.vm$;
+
   newTodoTitle = new FormControl('', {
     validators: [Validators.required, Validators.min(2), Validators.maxLength(200)],
   });
+
+  constructor() {}
 
   ngOnInit(): void {
     this.todosStore.fetchEffect(
@@ -120,6 +135,7 @@ export class TodosComponent implements OnInit {
       }
     });
   }
+
   CloseNofity(event: string) {
     this.todosStore.removeError();
   }

@@ -10,5 +10,6 @@ public class UpdateTodoCommandValidator : AbstractValidator<UpdateTodoCommand>
         RuleFor(x => x.updateTodoRequest.Title).NotEmpty();
         RuleFor(x => x.updateTodoRequest.Title).MaximumLength(200);
         RuleFor(x => x.updateTodoRequest.isCompleted).NotNull();
+        RuleFor(x => x.updateTodoRequest.DueAt).NotNull();
     }
 }

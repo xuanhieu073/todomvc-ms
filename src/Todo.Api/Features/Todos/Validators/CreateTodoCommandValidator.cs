@@ -8,5 +8,6 @@ public class CreateTodoCommandValidator : AbstractValidator<CreateTodoCommand>
     public CreateTodoCommandValidator()
     {
         RuleFor(x => x.createTodoRequest.Title).NotEmpty();
+        RuleFor(x => x.createTodoRequest.DueAt).NotNull();
     }
 }

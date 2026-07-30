@@ -3,9 +3,9 @@ using FluentValidation;
 using MongoDB.Driver;
 using MongoDB.Entities;
 using Todo.Api.Features.Reminders;
-using Todo.Api.Features.Todos.DTOs;
 using Todo.Api.Features.Todos.Middlewares;
 using Todo.Api.Features.Todos.Validators;
+using Todo.Api.MapingProfiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,7 +20,7 @@ builder.Services.AddMediatR(config =>
     config.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
-//builder.Services.AddHostedService<RemindersScanners>();
+builder.Services.AddHostedService<RemindersScanners>();
 
 await DB.InitAsync("TodoApp",
   MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("DefaultConnection")));

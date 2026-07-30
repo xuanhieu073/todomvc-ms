@@ -10,13 +10,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         Todos
       </nav>
       <nav
-        routerLink="/reminders"
-        class="cursor-pointer "
-        routerLinkActive="text-green-700 font-medium"
-      >
-        Reminders
-      </nav>
-      <nav
         routerLink="/statistics"
         class="cursor-pointer "
         routerLinkActive="text-green-700 font-medium"
