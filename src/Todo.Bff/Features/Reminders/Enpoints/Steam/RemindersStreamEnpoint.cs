@@ -22,11 +22,12 @@ public class RemindersStream : ICarterModule
             ISender sender,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            TimeSpan _delayInterval = TimeSpan.FromSeconds(2);
             var random = new Random();
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(4000, cancellationToken);
+                await Task.Delay(_delayInterval, cancellationToken);
 
                 var query = new RemindersStreamQuery(ReminderState.Pending);
                 var response = await sender.Send(query);

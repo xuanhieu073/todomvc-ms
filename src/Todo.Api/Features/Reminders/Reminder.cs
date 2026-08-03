@@ -12,6 +12,7 @@ namespace Todo.Api.Features.Reminders
         public ReminderState State { get; set; }     // Pending | Snoozed | Dismissed
         public DateTime? SnoozeUntil { get; set; }
         public DateTime? FiredAt { get; set; }        // lúc scanner phát hiện tới hạn
+        public DateTime? DimissAt { get; set; }
     }
 
     public enum ReminderState { Pending, Snoozed, Dismissed }

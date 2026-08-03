@@ -5,12 +5,12 @@ import { RemindersComponent } from '../../features/reminders/reminders.component
 @Component({
   selector: 'app-todo-layout',
   imports: [TodosComponent, RemindersComponent],
-  template: ` <div class="flex mt-6 gap-8">
+  template: ` <div class="flex flex-col-reverse lg:flex-row mt-6 gap-8">
     <div class="flex-1">
       <app-todos />
     </div>
 
-    <div class="w-1/3">
+    <div class="lg:w-1/3">
       <app-reminders />
     </div>
   </div>`,

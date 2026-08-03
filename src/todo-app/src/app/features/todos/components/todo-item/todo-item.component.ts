@@ -12,18 +12,17 @@ import {
 import { Todo } from '../../models/todo';
 import { TodosStore } from '../../todos.store';
 import { UpdateTodoRequest } from '../../models/update-todo-request';
-import { ClickOutsideDirective } from './todo-item.clickoutside.directive';
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-todo-item',
-  imports: [ClickOutsideDirective, FormsModule, ReactiveFormsModule, DatePipe],
+  imports: [FormsModule, ReactiveFormsModule, DatePipe],
   template: `
     <div
       class="todo-item border border-gray-200 px-4 bg-white flex gap-4"
       [class.py-4]="!inEditMode()"
-      (clickOutside)="UpdateTodo($event)"
+      /* (clickOutside)="UpdateTodo($event)" */
     >
       @if (!inEditMode()) {
         <button
@@ -36,9 +35,12 @@ import { DatePipe } from '@angular/common';
         </button>
       }
       @if (!inEditMode()) {
-        <p class="text-2xl text-gray-600 w-full" (dblclick)="ToggleEditMode()">
-          {{ todo().title }}
-        </p>
+        <div class="w-full flex" (dblclick)="ToggleEditMode()">
+          <p class="text-2xl text-gray-600 w-full">
+            {{ todo().title }}
+          </p>
+          <p class="w-1/3">{{ todo().dueAt | date: 'short' }}</p>
+        </div>
       } @else {
         <input
           class="text-2xl px-4 py-4 ml-8 w-full outline-green-700"
@@ -50,7 +52,7 @@ import { DatePipe } from '@angular/common';
         />
 
         <input
-          class="outline-green-600 px-6 py-4"
+          class="outline-green-600 px-6 py-4 w-1/3"
           type="datetime-local"
           id="appointment"
           name="appointment"
@@ -60,9 +62,7 @@ import { DatePipe } from '@angular/common';
 
         <button (click)="UpdateTodo($event)">✔️</button>
       }
-      @if (!inEditMode()) {
-        <p>{{ todo().dueAt | date: 'short' }}</p>
-      }
+      @if (!inEditMode()) {}
       @if (!inEditMode()) {
         <button class="hidden delete-button ml-auto" (click)="DeleteTodo(todo().id)">❌</button>
       }

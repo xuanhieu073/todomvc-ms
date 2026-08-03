@@ -2,7 +2,7 @@
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using MongoDB.Entities;
-using Todo.Api.Features.Todos.Entities;
+using Todo.Api.Features.Todos;
 
 namespace Todo.Api.Features.Reminders
 {
@@ -10,7 +10,7 @@ namespace Todo.Api.Features.Reminders
     {
         private readonly ILogger<RemindersScanners> _logger;
         private readonly IMapper _mapper;
-        private readonly TimeSpan _delayInterval = TimeSpan.FromSeconds(3);
+        private readonly TimeSpan _delayInterval = TimeSpan.FromSeconds(2);
 
         public RemindersScanners(ILogger<RemindersScanners> logger, IMapper mapper)
         {
@@ -106,6 +106,7 @@ namespace Todo.Api.Features.Reminders
                 foreach (var reminder in remindersNeedToDimiss)
                 {
                     reminder.State = ReminderState.Dismissed;
+                    reminder.DimissAt = DateTime.Now;
                 }
                 await remindersNeedToDimiss.SaveAsync();
             }

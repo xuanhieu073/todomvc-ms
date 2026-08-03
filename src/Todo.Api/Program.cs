@@ -3,10 +3,8 @@ using FluentValidation;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Entities;
+using Todo.Api.Common;
 using Todo.Api.Features.Reminders;
-using Todo.Api.Features.Todos.Middlewares;
-using Todo.Api.Features.Todos.Validators;
-using Todo.Api.MapingProfiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,8 +32,9 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseMiddleware<ValidationExceptionHandlingMiddleware>();
+
 app.UseHttpsRedirection();
 
 app.MapCarter();
-app.UseMiddleware<ValidationExceptionHandlingMiddleware>();
 app.Run();

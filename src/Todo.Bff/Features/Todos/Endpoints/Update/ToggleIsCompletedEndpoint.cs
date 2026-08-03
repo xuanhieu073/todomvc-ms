@@ -8,7 +8,7 @@ public class ToggleIsCompletedEnpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/bff/todos/{id}", async (string Id, ISender sender) =>
+        app.MapPatch("/bff/todos/{id}/toggle", async (string Id, ISender sender) =>
         {
             var command = new ToggleIsCompletedCommand(Id);
             var response = await sender.Send(command);

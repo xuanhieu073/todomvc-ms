@@ -1,0 +1,12 @@
+﻿using MongoDB.Entities;
+
+namespace Todo.Api.Features.Todos
+{
+    public class TodoItem : Entity   // ID string do MongoDB.Entities sinh
+    {
+        public string Title { get; set; }
+        public bool IsCompleted { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime DueAt { get; set; }
+    }
+}
