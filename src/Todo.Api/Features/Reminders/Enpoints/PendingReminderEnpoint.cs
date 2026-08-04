@@ -29,7 +29,7 @@ public class PendingReminderEndpoint : ICarterModule
             }
             query = request.state.ToLower() switch
             {
-                "pending" => query.Where(r => r.Reminder.State == ReminderState.Pending && r.Reminder.FiredAt == null),
+                "pending" => query.Where(r => r.Reminder.State == ReminderState.Pending),
                 "snoozed" => query.Where(r => r.Reminder.State == ReminderState.Snoozed),
                 "dimissed" => query.Where(r => r.Reminder.State == ReminderState.Dismissed),
                 _ => query

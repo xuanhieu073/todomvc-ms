@@ -11,7 +11,7 @@ public class SnoozeReminderEnpoint : ICarterModule
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         app.MapPatch("/api/reminders/{id}/snooze", (string Id, SnoozeReminderCommand command, ISender sender) =>
-            sender.Send(command with { Id = Id}));
+            sender.Send(command with { Id = Id }));
     }
     public sealed record SnoozeReminderCommand(string Id, int minutes) : IRequest<Reminder?>;
     public class SnoozeReminderHandler : IRequestHandler<SnoozeReminderCommand, Reminder?>
@@ -28,7 +28,7 @@ public class SnoozeReminderEnpoint : ICarterModule
             else
             {
                 reminder.State = ReminderState.Snoozed;
-                reminder.SnoozeUntil = DateTime.Now.AddSeconds(request.minutes);
+                reminder.SnoozeUntil = DateTime.UtcNow.AddSeconds(request.minutes);
                 await reminder.SaveAsync();
                 return reminder;
             }

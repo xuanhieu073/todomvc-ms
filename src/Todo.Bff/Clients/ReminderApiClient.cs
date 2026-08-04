@@ -1,10 +1,10 @@
-using Todo.Bff.Features.Reminders.DTOs;
+using Todo.Bff.Features.Reminders;
+using Todo.Bff.Features.Reminders.Enpoints;
 
 namespace Todo.Bff.Clients;
 
 public class ReminderApiClient(HttpClient httpClient) : ApiClient(httpClient)
 {
-
 
     public async Task<ApiResult> GetPendingReminders(ReminderState state, CancellationToken cancellationToken = default)
     {
@@ -15,6 +15,16 @@ public class ReminderApiClient(HttpClient httpClient) : ApiClient(httpClient)
             ReminderState.Dismissed => await GetAsync<List<PendingReminderDto>>($"/api/reminders?state=dismissed", cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
+    }
+
+    public async Task<ApiResult> GetUpcomingReminders(string within, string fireAt, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<List<PendingReminderDto>>($"/api/reminders/upcoming?within={within}&fireAt={fireAt}", cancellationToken);
+    }
+
+    public async Task<ApiResult> GetDimissedReminders(string dimissedFrom, CancellationToken cancellationToken = default)
+    {
+        return await GetAsync<List<ReminderDto>>($"/api/reminders/dimissed?from={dimissedFrom}", cancellationToken);
     }
 
     public async Task<ApiResult> UpdateReminderFireAt(string Id, CancellationToken cancellationToken = default)

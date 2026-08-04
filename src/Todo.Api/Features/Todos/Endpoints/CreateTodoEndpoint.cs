@@ -21,7 +21,7 @@ namespace Todo.Api.Features.Todos.Endpoints
     {
         public async Task<TodoResponse> Handle(CreateTodoCommand command, CancellationToken cancellationToken)
         {
-            var newTodo = new TodoItem { Title = command.Title, DueAt = command.DueAt, CreatedAt = DateTime.Now };
+            var newTodo = new TodoItem { Title = command.Title, DueAt = command.DueAt, CreatedAt = DateTime.UtcNow };
             await newTodo.SaveAsync();
             return _mapper.Map<TodoResponse>(newTodo);
         }

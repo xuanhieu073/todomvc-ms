@@ -22,11 +22,15 @@ namespace Todo.Api.Features.Reminders
         {
             _logger.LogInformation("Task.Delay Worker started.");
 
+            DateTime? fireAt = null;
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    await DoWorkAsync(stoppingToken);
+                    if (fireAt == null) { fireAt = DateTime.UtcNow; }
+                    var fireAtString = ((DateTime)fireAt).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                    await DoWorkAsync(stoppingToken, fireAt);
+                    fireAt = DateTime.UtcNow;
                 }
                 catch (Exception ex)
                 {
@@ -46,11 +50,11 @@ namespace Todo.Api.Features.Reminders
             _logger.LogInformation("Task.Delay Worker stopped cleanly.");
         }
 
-        private async Task DoWorkAsync(CancellationToken cancellationToken)
+        private async Task DoWorkAsync(CancellationToken cancellationToken, DateTime? fireAt)
         {
             _logger.LogInformation("Task.Delay function executed at: {Time}", DateTimeOffset.Now);
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
 
             var todosNeedToReminder = await DB.Collection<TodoItem>()
                 .AsQueryable()
@@ -64,23 +68,44 @@ namespace Todo.Api.Features.Reminders
                     x => x.reminders.DefaultIfEmpty(),
                     (x, reminder) => new { x.todo, reminder }
                 )
-                .Where(x => (x.todo.DueAt <= now && x.todo.IsCompleted == false) && x.reminder == null)
-                .Select(x => x.todo)
+                .Where(x => x.todo.DueAt <= now && x.todo.IsCompleted == false && (x.reminder == null || x.reminder.State == ReminderState.Dismissed))
+                // .Select(x => x.todo)
                 .ToListAsync();
 
             if (todosNeedToReminder.Any())
             {
-                var newReminders = todosNeedToReminder.Select(td => new Reminder { TodoId = td.ID, State = ReminderState.Pending, DueAt = td.DueAt });
-                await DB.SaveAsync(newReminders);
+                var newReminders = todosNeedToReminder
+                    .Where(x => x.reminder == null)
+                    .Select(x => new Reminder { TodoId = x.todo.ID, State = ReminderState.Pending, FiredAt = DateTime.UtcNow, DueAt = x.todo.DueAt });
+                if (newReminders.Any())
+                    await DB.SaveAsync(newReminders);
+
+                //var dimissedReminders = todosNeedToReminder
+                //    .Where(x => x.reminder != null && x.reminder.State == ReminderState.Dismissed)
+                //    .Select(x => x.reminder!)
+                //    .ToList();
+
+                //if(dimissedReminders.Any())
+                //{
+                //    foreach (var reminder in dimissedReminders)
+                //    {
+                //        reminder.State = ReminderState.Pending;
+                //        reminder.FiredAt = DateTime.UtcNow;
+                //        reminder.DimissAt = null;
+                //    }
+                //    await dimissedReminders.SaveAsync();
+                //}
             }
 
-            var overSnoozedReminders = await DB.Collection<Reminder>().AsQueryable().Where(r => r.State == ReminderState.Snoozed && r.SnoozeUntil <= now).ToListAsync();
+            var overSnoozedReminders = await DB.Collection<Reminder>().AsQueryable()
+                .Where(r => r.State == ReminderState.Snoozed && r.SnoozeUntil <= now)
+                .ToListAsync();
             if (overSnoozedReminders.Any())
             {
                 foreach (var reminder in overSnoozedReminders)
                 {
                     reminder.State = ReminderState.Pending;
-                    reminder.FiredAt = null;
+                    reminder.FiredAt = DateTime.UtcNow;
                 }
                 await overSnoozedReminders.SaveAsync();
             }
@@ -97,7 +122,7 @@ namespace Todo.Api.Features.Reminders
                     x => x.todos.DefaultIfEmpty(),
                     (x, todo) => new { x.reminder, todo }
                 )
-                .Where(x => x.todo == null || x.todo.IsCompleted == true)
+                .Where(x => (x.todo == null || x.todo.IsCompleted == true) && x.reminder.DimissAt == null)
                 .Select(x => x.reminder)
                 .ToListAsync();
 
@@ -106,7 +131,7 @@ namespace Todo.Api.Features.Reminders
                 foreach (var reminder in remindersNeedToDimiss)
                 {
                     reminder.State = ReminderState.Dismissed;
-                    reminder.DimissAt = DateTime.Now;
+                    reminder.DimissAt = DateTime.UtcNow;
                 }
                 await remindersNeedToDimiss.SaveAsync();
             }

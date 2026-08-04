@@ -67,12 +67,12 @@ Accept: application/json
 
 ###
 
-GET {{Todo.Api_HostAddress}}/api/reminders/upcoming
+GET {{Todo.Api_HostAddress}}/api/reminders/upcoming?within=60s&fireAt=2026-08-03T09:28:16Z
 Accept: application/json
 
 ###
 
-GET {{Todo.Api_HostAddress}}/api/reminders/dimissed?from=2026-01-01
+GET {{Todo.Api_HostAddress}}/api/reminders/dimissed?from=2026-08-04T02:13:13.6383Z
 Accept: application/json
 
 ###

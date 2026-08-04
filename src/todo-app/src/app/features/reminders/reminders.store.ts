@@ -40,6 +40,13 @@ export class RemindersStore extends ComponentStore<RemindersState> {
     };
   });
 
+  readonly removePendingReminder = this.updater((state, reminderIds: string[]) => {
+    return {
+      ...state,
+      pendingReminders: state.pendingReminders.filter((r) => !reminderIds.includes(r.id)),
+    };
+  });
+
   initializeEffect = this.effect((trigger$) =>
     trigger$.pipe(
       tap(() => {

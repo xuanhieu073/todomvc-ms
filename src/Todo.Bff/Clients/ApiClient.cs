@@ -1,8 +1,6 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Todo.Bff.Features.Reminders.DTOs;
-using Todo.Bff.Features.Todos.DTOs;
 
 namespace Todo.Bff.Clients
 {

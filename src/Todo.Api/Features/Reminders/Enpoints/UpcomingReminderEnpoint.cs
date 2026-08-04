@@ -1,8 +1,9 @@
-using System.Text.RegularExpressions;
+using AutoMapper;
 using Carter;
 using MediatR;
-using MongoDB.Entities;
 using MongoDB.Driver.Linq;
+using MongoDB.Entities;
+using System.Text.RegularExpressions;
 using Todo.Api.Features.Todos;
 
 namespace Todo.Api.Features.Reminders.Enpoints;
@@ -15,27 +16,18 @@ public class UpcomingReminderEnpoint : ICarterModule
             await sender.Send(query));
     }
 
-    public sealed record UpcomingReminderQuery(string? within) : IRequest<List<TodoItem>>;
+    public sealed record UpcomingReminderQuery(string? within, DateTime? fireAt) : IRequest<List<PendingReminderDto>>;
 
-    public class UpcomingReminderHandler : IRequestHandler<UpcomingReminderQuery, List<TodoItem>>
+    public class UpcomingReminderHandler(IMapper _mapper) : IRequestHandler<UpcomingReminderQuery, List<PendingReminderDto>>
     {
-        public async Task<List<TodoItem>> Handle(UpcomingReminderQuery request, CancellationToken cancellationToken)
+        public async Task<List<PendingReminderDto>> Handle(UpcomingReminderQuery request, CancellationToken cancellationToken)
         {
 
-            var query = DB.Queryable<TodoItem>()
-            .GroupJoin(
-                DB.Collection<Reminder>(),
-                td => td.ID,
-                r => r.TodoId,
-                (todo, reminders) => new { todo, reminders }
-            )
-            .SelectMany(
-                x => x.reminders.DefaultIfEmpty(),
-                (x, reminder) => new { x.todo, reminder }
-            );
+            var query = DB.Queryable<Reminder>().Join(DB.Collection<TodoItem>(), r => r.TodoId, td => td.ID, (reminder, todo) => new ReminderTodoDto { Reminder = reminder, Todo = todo });
             if (request.within == null)
             {
-                return await query.Select(x => x.todo).ToListAsync();
+                var reminders = await query.ToListAsync();
+                return _mapper.Map<List<PendingReminderDto>>(reminders);
             }
 
             string pattern = @"^(?<number>\d+)(?<unit>[a-zA-Z]+)$";
@@ -49,17 +41,18 @@ public class UpcomingReminderEnpoint : ICarterModule
 
                 int.TryParse(number, out int value);
 
-                var now = DateTime.Now;
+                var now = DateTime.UtcNow;
                 query = unit switch
                 {
-                    "h" => query.Where(x => x.todo.DueAt >= now && x.todo.DueAt <= now.AddHours(value)),
-                    "m" => query.Where(x => x.todo.DueAt >= now && x.todo.DueAt <= now.AddMinutes(value)),
-                    "s" => query.Where(x => x.todo.DueAt >= now && x.todo.DueAt <= now.AddSeconds(value)),
+                    "h" => query.Where(x => x.Reminder.State == ReminderState.Pending && x.Todo.DueAt <= now.AddHours(value)),
+                    "m" => query.Where(x => x.Reminder.State == ReminderState.Pending && x.Todo.DueAt <= now.AddMinutes(value)),
+                    "s" => query.Where(x => (request.fireAt == null || x.Reminder.FiredAt > request.fireAt) && x.Reminder.State == ReminderState.Pending && x.Todo.DueAt <= now.AddSeconds(value)),
                     _ => query,
                 };
-                return await query.Select(x => x.todo).ToListAsync();
+                var reminders = await query.ToListAsync();
+                return _mapper.Map<List<PendingReminderDto>>(reminders);
             }
-            return new List<TodoItem>();
+            return new List<PendingReminderDto>();
         }
     }
 }

@@ -18,17 +18,17 @@ public class DimissReminderEnpoint : ICarterModule
         public async Task<Reminder?> Handle(DimissReminderCommand request, CancellationToken cancellationToken)
         {
             var reminder = await DB.Find<Reminder>().OneAsync(request.Id);
-            
+
             if (reminder == null)
             {
                 var error = new ValidationError("Id", $"The specified Todo ID does not exist.");
                 List<ValidationError> errors = [error];
                 throw new NotFoundException(errors);
             }
-            else 
+            else
             {
                 reminder.State = ReminderState.Dismissed;
-                reminder.DimissAt = DateTime.Now;
+                reminder.DimissAt = DateTime.UtcNow;
                 await reminder.SaveAsync();
                 return reminder;
             }

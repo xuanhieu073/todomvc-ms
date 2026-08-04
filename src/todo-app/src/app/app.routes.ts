@@ -4,7 +4,9 @@ export const routes: Routes = [
   {
     path: 'todos',
     loadComponent: () =>
-      import('./shared/todos-layout/todos-layout.component').then((c) => c.TodoLayoutComponent),
+      import('./shared/layout/todos-layout/todos-layout.component').then(
+        (c) => c.TodoLayoutComponent,
+      ),
   },
   {
     path: 'statistics',

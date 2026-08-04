@@ -55,27 +55,29 @@ export class RemindersComponent implements OnDestroy {
   items = ['stuff', 'things', 'cheese', 'paper'];
 
   eventSource: EventSource;
-  handleMessage: (event: MessageEvent) => void;
+  handleAddReminder = (event: MessageEvent) => {
+    const addReminders = JSON.parse(event.data) as Reminder[];
+    console.log('Reminder Update received:', addReminders);
+    if (addReminders.length > 0) this.remindersStore.addPendingReminder(addReminders);
+  };
+
+  handleRemoveReminder = (event: MessageEvent) => {
+    console.log('Reminder Dimissed received:', event.data);
+    const removeReminders = JSON.parse(event.data) as Reminder[];
+    if (removeReminders.length > 0)
+      this.remindersStore.removePendingReminder(removeReminders.map((r) => r.id));
+  };
 
   constructor() {
     // Connect to the .NET SSE endpoint
     this.eventSource = new EventSource('https://localhost:7160/bff/reminders/stream');
-    this.handleMessage = (event) => {
-      const reminder = JSON.parse(event.data) as Reminder[];
-      console.log('Reminder Update received:', reminder);
-      if (reminder.length > 0) this.remindersStore.addPendingReminder(reminder);
-    };
-
     // Handle default/nameless events ("message" event)
     this.eventSource.onmessage = (event) => {
       console.log('Generic message received:', event.data);
     };
 
-    // Handle custom named events (like 'weatherUpdate' declared in our .NET 10 code)
-    this.eventSource.addEventListener('remindersUpdate', this.handleMessage);
-    this.eventSource.addEventListener('removeDimiss', (event) => {
-      console.log('remove reminder', event.data);
-    });
+    this.eventSource.addEventListener('receive', this.handleAddReminder);
+    this.eventSource.addEventListener('remove', this.handleRemoveReminder);
 
     // Capture network or connectivity issues
     this.eventSource.onerror = (error) => {
@@ -85,6 +87,7 @@ export class RemindersComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.eventSource.close();
-    this.eventSource.removeEventListener('remindersUpdate', this.handleMessage);
+    this.eventSource.removeEventListener('receive', this.handleAddReminder);
+    this.eventSource.removeEventListener('remove', this.handleRemoveReminder);
   }
 }

@@ -27,7 +27,7 @@ public class UpdateFireAtEndpoint : ICarterModule
                 List<ValidationError> errors = [error];
                 throw new NotFoundException(errors);
             }
-            reminder.FiredAt = DateTime.Now;
+            reminder.FiredAt = DateTime.UtcNow;
             await reminder.SaveAsync();
             return mapper.Map<ReminderDto>(reminder);
         }
