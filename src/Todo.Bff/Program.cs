@@ -1,5 +1,6 @@
 using Carter;
 using Todo.Bff.Clients;
+using Todo.Bff.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,8 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 

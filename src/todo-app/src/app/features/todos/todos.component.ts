@@ -1,5 +1,5 @@
 import { AsyncPipe, JsonPipe } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, take } from 'rxjs';
 import { TodoItemComponent } from './components/todo-item/todo-item.component';
@@ -9,6 +9,9 @@ import { TodoFooterComponent } from './components/todo-footer/todo-footer.compon
 import { ErrorMessageComponent } from './components/error-message/error-message.component';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { TodoInput } from './components/form/todo-input.component';
+import { TodoDatepickerComponent } from './components/form/todo-datepicker.component';
+import { form, maxLength, required, FormField } from '@angular/forms/signals';
 
 @Component({
   selector: 'app-todos',
@@ -18,6 +21,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
     TodoFooterComponent,
     ErrorMessageComponent,
     ReactiveFormsModule,
+    TodoInput,
+    TodoDatepickerComponent,
+    FormField,
   ],
   providers: [TodosStore, TodosService],
   template: ` <div class="flex flex-col items-center mt-6 gap-8">
@@ -40,28 +46,24 @@ import { toSignal } from '@angular/core/rxjs-interop';
             🔻
           </button>
         }
-        <input
-          class="py-4 px-14 text-2xl italic outline-green-600 w-full"
-          type="text"
-          placeholder="What needs to be done?"
-          (keydown.enter)="CreateTodo($event)"
-          [formControl]="newTodoTitle"
-        />
-
-        <input
-          class="outline-green-600 px-6 py-4"
-          type="datetime-local"
-          id="appointment"
-          name="appointment"
-          [formControl]="newTodoDueAt"
-          (keydown.enter)="CreateTodo($event)"
-        />
-        <button class="px-4 py-2" (click)="CreateTodo($event)">✔️</button>
+        <form novalidate class="flex w-full">
+          <app-todo-input [formField]="newTodoForm.title" />
+          <app-todo-datepicker [formField]="newTodoForm.dueAt" />
+          <button
+            class="px-4 py-2 cursor-pointer disabled:opacity-10"
+            [disabled]="newTodoForm().invalid()"
+            (click)="CreateTodo($event)"
+          >
+            ✔️
+          </button>
+        </form>
       </div>
-      @if (newTodoTitle.touched && newTodoTitle.hasError('maxlength')) {
-        <div class="bg-white px-4 border border-gray-200">
-          Title length shoud not greater than 200
-        </div>
+      @if (newTodoForm.title().touched() && newTodoForm.title().invalid()) {
+        <ul class="error-list">
+          @for (error of newTodoForm.title().errors(); track error) {
+            <li class="bg-white px-4 border border-gray-200">{{ error.message }}</li>
+          }
+        </ul>
       }
       <ul>
         @for (todo of todos$(); track todo.id) {
@@ -98,12 +100,15 @@ export class TodosComponent implements OnInit {
   isLoading$ = this.todosStore.isLoading$;
   error$ = this.todosStore.error$;
 
-  newTodoTitle = new FormControl('', {
-    validators: [Validators.required, Validators.min(2), Validators.maxLength(200)],
+  newTodoModel = signal({
+    title: '',
+    dueAt: null as Date | null,
   });
 
-  newTodoDueAt = new FormControl<Date>(new Date(), {
-    validators: [Validators.required],
+  newTodoForm = form(this.newTodoModel, (schemaPath) => {
+    required(schemaPath.title, { message: 'Title is required' });
+    maxLength(schemaPath.title, 200, { message: 'Title must be less than 200 characters' });
+    required(schemaPath.dueAt, { message: 'Due date is required' });
   });
 
   constructor() {}
@@ -121,14 +126,8 @@ export class TodosComponent implements OnInit {
   }
 
   CreateTodo(event: Event) {
-    if (this.newTodoTitle.valid) {
-      if (this.newTodoDueAt.valid && this.newTodoTitle.valid) {
-        const title = this.newTodoTitle.value;
-        const dueAt = this.newTodoDueAt.value;
-        this.todosStore.createEffect({ title: title!, dueAt: dueAt! });
-        this.newTodoTitle.reset();
-      }
-    }
+    event.preventDefault();
+    this.todosStore.createEffect(this.newTodoForm().value() as { title: string; dueAt: Date });
   }
 
   ToggleCompletedAll() {

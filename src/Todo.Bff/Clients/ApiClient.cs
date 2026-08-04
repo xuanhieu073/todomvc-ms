@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Todo.Bff.Common;
 
 namespace Todo.Bff.Clients
 {
@@ -17,13 +18,13 @@ namespace Todo.Bff.Clients
 
         protected Task<ApiResult> DeleteAsync<TResponse>(
             string path, CancellationToken ct = default)
-            => SendAsync<TResponse, string>(HttpMethod.Delete, path, null, ct);
+            => SendAsync<TResponse>(HttpMethod.Delete, path, null, ct);
 
         protected Task<ApiResult> GetAsync<TResponse>(
             string path, CancellationToken ct = default)
-            => SendAsync<TResponse, string>(HttpMethod.Get, path, null, ct);
+            => SendAsync<TResponse>(HttpMethod.Get, path, null, ct);
 
-        protected async Task<ApiResult> SendAsync<TResponse, TError>(
+        protected async Task<ApiResult> SendAsync<TResponse>(
             HttpMethod method, string path, object? body, CancellationToken cancellationToken)
         {
             using var request = new HttpRequestMessage(method, path);
@@ -60,22 +61,22 @@ namespace Todo.Bff.Clients
 
                 case HttpStatusCode.BadRequest:
                     {
-                        var error = Deserialize<TError>(raw);
-                        return ApiErrorResult<TError>.Failure(error, 400, "Bad request", "VALIDATION_ERROR");
+                        var error = Deserialize<Todo.Bff.Common.Error>(raw);
+                        throw new ValidationException(error?.errors!);
                     }
 
                 case HttpStatusCode.NotFound:
                     {
-                        var errorMessage = Deserialize<string>(raw);
-                        return ApiErrorResult<string>.Failure(errorMessage, 404, errorMessage ?? "", "NOT_FOUND");
+                        var error = Deserialize<Todo.Bff.Common.Error>(raw);
+                        throw new NotFoundException(error?.errors!);
                     }
                 case HttpStatusCode.InternalServerError:
-                    return ApiErrorResult<string>.Failure("Internal Server Error", 500, "Internal Server Error", "INTERNAL_SERVER_ERROR");
+                    throw new Exception("Internal Server Error");
                 case HttpStatusCode.BadGateway:
                 case HttpStatusCode.ServiceUnavailable:
 
                 default:
-                    return ApiErrorResult<string>.Failure("Unknow Error", (int)response.StatusCode, "Unknow Error", "UNKNOWN");
+                    throw new Exception("Unknow Error");
             }
         }
 

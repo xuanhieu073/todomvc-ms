@@ -4,12 +4,6 @@ using Todo.Bff.Features.Todos.Endpoints;
 
 namespace Todo.Bff.Clients;
 
-
-class Error
-{
-    public List<TodoPropertiesError>? errors { get; set; }
-}
-
 public class TodoApiClient(HttpClient httpClient) : ApiClient(httpClient)
 {
 
@@ -25,13 +19,13 @@ public class TodoApiClient(HttpClient httpClient) : ApiClient(httpClient)
     => GetAsync<TodoResponse>($"/api/todos/{Id}", ct);
 
     public Task<ApiResult> CreateTodoAsync(CreateTodoRequest dto, CancellationToken ct = default)
-    => SendAsync<TodoResponse, Error>(HttpMethod.Post, "/api/todos", dto, ct);
+    => SendAsync<TodoResponse>(HttpMethod.Post, "/api/todos", dto, ct);
 
     public Task<ApiResult> UpdateTodoAsync(string Id, UpdateTodoRequest updateTodoRequest, CancellationToken cancellationToken = default)
-        => SendAsync<TodoResponse, Error>(HttpMethod.Put, $"/api/todos/{Id}", updateTodoRequest, cancellationToken);
+        => SendAsync<TodoResponse>(HttpMethod.Put, $"/api/todos/{Id}", updateTodoRequest, cancellationToken);
 
     public Task<ApiResult> ToggleIsCompleted(string Id, CancellationToken cancellationToken = default)
-        => SendAsync<TodoResponse, string>(HttpMethod.Patch, $"/api/todos/{Id}/toggle", null, cancellationToken);
+        => SendAsync<TodoResponse>(HttpMethod.Patch, $"/api/todos/{Id}/toggle", null, cancellationToken);
 
     public Task<ApiResult> DelteTodo(string Id, CancellationToken cancellationToken = default)
         => DeleteAsync<string>($"/api/todos/{Id}", cancellationToken);

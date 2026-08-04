@@ -15,7 +15,7 @@ POST {{Todo.Api_HostAddress}}/api/todos
 Content-Type: application/json
 
 {
-  "Title": "React",
+  "Title": "",
   "DueAt": "2026-07-29"
 }
 
@@ -96,12 +96,5 @@ Content-Type: application/json
 
 ###
 
-POST {{Todo.Api_HostAddress}}/api/todos/query
+GET {{Todo.Api_HostAddress}}/api/stats/overview
 Content-Type: application/json
-
-{
-  "filter": "{}",
-  "sortField": "CreatedAt",
-  "sortDescending": false,
-  "limit": 20
-}

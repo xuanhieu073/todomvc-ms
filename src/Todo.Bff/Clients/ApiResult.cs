@@ -2,7 +2,6 @@
 
 public abstract class ApiResult
 {
-
     public int? StatusCode { get; init; }
     public string? ErrorMessage { get; init; }
     public string? ErrorCode { get; init; }
@@ -21,29 +20,5 @@ public class ApiSucessResult<T> : ApiResult
         return Data is null
                 ? Results.NoContent()
                 : Results.Ok(Data);
-    }
-}
-
-public class ApiErrorResult<T> : ApiResult
-{
-    public T? Error { get; init; }
-
-    public static ApiErrorResult<T> Failure(T? error, int statusCode, string message, string? errorCode = null) =>
-        new() { Error = error, IsSuccess = false, StatusCode = statusCode, ErrorMessage = message, ErrorCode = errorCode };
-
-    public override IResult ToHttpResponse()
-    {
-        return StatusCode switch
-        {
-            400 => Results.BadRequest(new { message = ErrorMessage, error = Error, code = ErrorCode }),
-            404 => Results.NotFound(new { message = ErrorMessage }),
-            401 => Results.Unauthorized(),
-            403 => Results.Forbid(),
-            429 => Results.Json(new { message = ErrorMessage }, statusCode: 429),
-            _ => Results.Problem(
-                    title: "Unkow Error",
-                    detail: ErrorMessage,
-                    statusCode: StatusCode ?? 500)
-        };
     }
 }
