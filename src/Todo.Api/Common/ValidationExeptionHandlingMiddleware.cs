@@ -55,5 +55,19 @@ public sealed class ValidationExceptionHandlingMiddleware
 
             await context.Response.WriteAsJsonAsync(problemDetails);
         }
+        //catch (Exception exception)
+        //{
+        //    var problemDetails = new ProblemDetails
+        //    {
+        //        Status = StatusCodes.Status500InternalServerError,
+        //        Type = "InternalServerError",
+        //        Title = "Internal server error",
+        //        Detail = "An unexpected error has occurred."
+        //    };
+
+        //    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+        //    await context.Response.WriteAsJsonAsync(problemDetails);
+        //}
     }
 }

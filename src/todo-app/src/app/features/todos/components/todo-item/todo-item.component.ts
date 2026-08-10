@@ -96,8 +96,6 @@ export class TodoItemComponent implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    // this.title.set(this.todo().title);
-    console.log(this.todo().dueAt);
     const dateTimeLocal: any = this.todo().dueAt.toString().substring(0, 16);
     this.updateTodoTitle.setValue(this.todo().title);
     this.updateTodoDueAt.setValue(dateTimeLocal);

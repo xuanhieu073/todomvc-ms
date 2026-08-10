@@ -1,5 +1,6 @@
 using Carter;
 using FluentValidation;
+using Microsoft.Extensions.Azure;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Entities;
@@ -20,6 +21,10 @@ builder.Services.AddMediatR(config =>
 });
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 builder.Services.AddHostedService<RemindersScanners>();
+builder.Services.AddAzureClients(clientBuilder =>
+{
+    clientBuilder.AddServiceBusClient("Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;");
+});
 
 await DB.InitAsync("TodoApp",
   MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("DefaultConnection")));

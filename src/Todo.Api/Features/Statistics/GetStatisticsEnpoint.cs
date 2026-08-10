@@ -1,5 +1,6 @@
 using Carter;
 using MediatR;
+using MongoDB.Driver;
 using MongoDB.Entities;
 using Todo.Api.Features.Todos;
 
@@ -20,15 +21,166 @@ public class GetStatisticsHandler : IRequestHandler<GetStatisticsQuery, StatsOve
 {
     public async Task<StatsOverviewDto> Handle(GetStatisticsQuery request, CancellationToken cancellationToken)
     {
-        var pipeline = new Template<TodoItem>(@"
-            [
-                { $match: { <Title>: '<todo_title>' } } 
-            ]")
-            .Path(t => t.Title)
-            .Tag("todo_title", "Angular");
+        var pipeline = new Template<TodoItem, StatsOverviewDto>(@"
+        [
+            { 
+                '$group': { 
+                    '_id': null, 
+                    '<Total>': { '$sum': 1 },
+                    '<Active>': {
+                        '$sum': {
+                        '$cond': [
+                            {
+                            '$eq': [
+                                '$IsCompleted',
+                                false
+                            ]
+                            },
+                            1,
+                            0
+                            ]
+                        }
+                    },
+                    '<Completed>': {
+                        '$sum': {
+                        '$cond': [
+                            {
+                            '$eq': [
+                                '$IsCompleted',
+                                true
+                            ]
+                            },
+                            1,
+                            0
+                        ]
+                        }
+                    },
+                    '<Overdue>': {
+                        '$sum': {
+                        '$cond': [
+                            {
+                            '$and': [
+                                {
+                                '$eq': [
+                                    '$IsCompleted',
+                                    false
+                                ]
+                                },
+                                {
+                                '$lte': [
+                                    '$DueAt',
+                                    '$$NOW'
+                                ]
+                                }
+                            ]
+                            },
+                            1,
+                            0
+                        ]
+                        }
+                    },
+                    '<CompletedToday>': {
+                        '$sum': {
+                        '$cond': [
+                            {
+                            '$eq': [
+                                {
+                                '$dateTrunc': {
+                                    'date': '$CompletedAt',
+                                    'unit': 'day',
+                                    'timezone': 'Asia/Saigon'
+                                }
+                                },
+                                {
+                                '$dateTrunc': {
+                                    'date': '$$NOW',
+                                    'unit': 'day',
+                                    'timezone': 'Asia/Saigon'
+                                }
+                                }
+                            ]
+                            },
+                            1,
+                            0
+                        ]
+                        }
+                    },
+                    '<CompletedThisWeek>': {
+                        '$sum': {
+                        '$cond': [
+                            {
+                            '$eq': [
+                                {
+                                '$dateTrunc': {
+                                    'date': '$CompletedAt',
+                                    'unit': 'week',
+                                    'timezone': 'Asia/Saigon'
+                                }
+                                },
+                                {
+                                '$dateTrunc': {
+                                    'date': '$$NOW',
+                                    'unit': 'week',
+                                    'timezone': 'Asia/Saigon'
+                                }
+                                }
+                            ]
+                            },
+                            1,
+                            0
+                        ]
+                        }
+                    }
+                } 
+            },
+            {
+                '$project': {
+                    '_id': 0,
+                    '<Total>': 1,
+                    '<Active>': 1,
+                    '<Completed>': 1,
+                    '<Overdue>': 1,
+                    '<CompletedToday>': 1,
+                    '<CompletedThisWeek>': 1,
+                    '<CompletionRate>': {
+                        '$cond': [
+                        {
+                            '$eq': [
+                            '$<Total>',
+                            0
+                            ]
+                        },
+                        0,
+                        {
+                            '$round': [
+                            {
+                                '$divide': [
+                                '$<Completed>',
+                                '$<Total>'
+                                ]
+                            },
+                            4
+                            ]
+                        }
+                        ]
+                    }
+                }
+            }
+        ]")
+        .Tag("Total", nameof(StatsOverviewDto.Total))
+        .Tag("Active", nameof(StatsOverviewDto.Active))
+        .Tag("Completed", nameof(StatsOverviewDto.Completed))
+        .Tag("Overdue", nameof(StatsOverviewDto.Overdue))
+        .Tag("CompletedToday", nameof(StatsOverviewDto.CompletedToday))
+        .Tag("CompletedThisWeek", nameof(StatsOverviewDto.CompletedThisWeek))
+        .Tag("CompletionRate", nameof(StatsOverviewDto.CompletionRate));
 
-        // Execute the raw pipeline against your database
-        var results = await DB.PipelineAsync<TodoItem, TodoItem>(pipeline);
-        return new StatsOverviewDto(Total: 100, Active: 50, Completed: 50, Overdue: 10, CompletedToday: 5, CompletedThisWeek: 20, CompletionRate: 0.5, CompletedByDay: new List<DailyCountDto>());
+        //pipeline.Tag("Total", nameof(StatsOverviewDto.Total));
+
+        //var results = await DB.PipelineAsync<TodoItem, StatsOverviewDto>(pipeline);
+        var results = await DB.PipelineCursorAsync(pipeline);
+        var statsOverview = results.FirstOrDefault();
+
+        return statsOverview;
     }
 }
