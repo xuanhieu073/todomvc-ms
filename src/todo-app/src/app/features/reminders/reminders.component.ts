@@ -16,9 +16,9 @@ import { Reminder } from '../todos/models/reminder';
         </div>
         <ul class="items">
           @for (reminder of pendingReminders; track reminder.id) {
-            <app-reminder-item [reminder]="reminder" class="item-container" animate.leave="fade">{{
-              reminder.title
-            }}</app-reminder-item>
+            <app-reminder-item [reminder]="reminder" class="item-container" animate.leave="fade"
+              >Overdue task: {{ reminder.title }}
+            </app-reminder-item>
           }
         </ul>
       }
@@ -69,17 +69,14 @@ export class RemindersComponent implements OnDestroy {
   };
 
   constructor() {
-    // Connect to the .NET SSE endpoint
     this.eventSource = new EventSource('https://localhost:7160/bff/reminders/stream');
-    // Handle default/nameless events ("message" event)
     this.eventSource.onmessage = (event) => {
       console.log('Generic message received:', event.data);
     };
 
-    this.eventSource.addEventListener('receive', this.handleAddReminder);
-    this.eventSource.addEventListener('remove', this.handleRemoveReminder);
+    this.eventSource.addEventListener('reminder-fired', this.handleAddReminder);
+    this.eventSource.addEventListener('reminder-removed', this.handleRemoveReminder);
 
-    // Capture network or connectivity issues
     this.eventSource.onerror = (error) => {
       console.error('EventSource failed:', error);
     };

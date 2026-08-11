@@ -1,7 +1,6 @@
 using Carter;
 using FluentValidation;
 using Microsoft.Extensions.Azure;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Entities;
 using Todo.Api.Common;
@@ -23,11 +22,10 @@ builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 builder.Services.AddHostedService<RemindersScanners>();
 builder.Services.AddAzureClients(clientBuilder =>
 {
-    clientBuilder.AddServiceBusClient("Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;");
+    clientBuilder.AddServiceBusClient(builder.Configuration.GetConnectionString("ASBConnectionString"));
 });
-
 await DB.InitAsync("TodoApp",
-  MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("DefaultConnection")));
+    MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 

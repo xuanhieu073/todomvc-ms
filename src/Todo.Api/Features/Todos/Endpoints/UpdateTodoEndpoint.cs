@@ -16,13 +16,14 @@ namespace Todo.Api.Features.Todos.Endpoints
         }
     }
 
-    public sealed record UpdateTodoCommand(string Id, string Title, bool IsCompleted, DateTime DueAt) : IRequest<TodoResponse?>;
+    public sealed record UpdateTodoCommand(string Id, string Title, bool IsCompleted, DateTime DueAt)
+        : IRequest<TodoResponse?>;
 
-    public class UpdateTodoHandler(IMapper _mapper) : IRequestHandler<UpdateTodoCommand, TodoResponse?>
+    public class UpdateTodoHandler(IMapper mapper) : IRequestHandler<UpdateTodoCommand, TodoResponse?>
     {
         public async Task<TodoResponse?> Handle(UpdateTodoCommand request, CancellationToken cancellationToken)
         {
-            var todo = await DB.Find<TodoItem>().OneAsync(request.Id);
+            var todo = await DB.Find<TodoItem>().OneAsync(request.Id, cancellationToken);
             if (todo == null)
             {
                 var error = new ValidationError("Id", $"The specified Todo ID does not exist.");
@@ -31,9 +32,9 @@ namespace Todo.Api.Features.Todos.Endpoints
             }
             else
             {
-                _mapper.Map(request, todo);
-                await todo.SaveAsync();
-                return _mapper.Map<TodoResponse>(todo);
+                mapper.Map(request, todo);
+                await todo.SaveAsync(cancellation: cancellationToken);
+                return mapper.Map<TodoResponse>(todo);
             }
         }
     }

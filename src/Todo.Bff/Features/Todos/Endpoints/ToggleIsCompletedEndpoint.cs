@@ -8,9 +8,9 @@ public class ToggleIsCompletedEnpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/bff/todos/{id}/toggle", async (string Id, ISender sender) =>
+        app.MapPatch("/bff/todos/{id}/toggle", async (string id, ISender sender) =>
         {
-            var command = new ToggleIsCompletedCommand(Id);
+            var command = new ToggleIsCompletedCommand(id);
             var response = await sender.Send(command);
             return response.ToHttpResponse();
         });
@@ -18,11 +18,12 @@ public class ToggleIsCompletedEnpoint : ICarterModule
 
     public sealed record ToggleIsCompletedCommand(string Id) : IRequest<ApiResult>;
 
-    public class ToggleIsCompletedHandler(TodoApiClient _apiClient) : IRequestHandler<ToggleIsCompletedCommand, ApiResult>
+    public class ToggleIsCompletedHandler(TodoApiClient apiClient)
+        : IRequestHandler<ToggleIsCompletedCommand, ApiResult>
     {
         public async Task<ApiResult> Handle(ToggleIsCompletedCommand request, CancellationToken cancellationToken)
         {
-            var response = await _apiClient.ToggleIsCompleted(request.Id);
+            var response = await apiClient.ToggleIsCompleted(request.Id, cancellationToken);
             return response;
         }
     }

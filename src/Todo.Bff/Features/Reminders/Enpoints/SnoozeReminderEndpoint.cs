@@ -8,20 +8,21 @@ public class SnoozeReminderEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/bff/reminders/{id}/snooze", async (string Id, SnoozeReminderReuqest request, ISender sender) =>
+        app.MapPatch("/bff/reminders/{id}/snooze", async (string id, SnoozeReminderReuqest request, ISender sender) =>
         {
-            var command = new SnoozeReminderCommand(Id, request);
+            var command = new SnoozeReminderCommand(id, request);
             var response = await sender.Send(command);
             return response.ToHttpResponse();
         });
     }
 }
-public sealed record SnoozeReminderCommand(string Id, SnoozeReminderReuqest snoozeMinutes) : IRequest<ApiResult>;
 
-public class SnoozeReminderHandler(ReminderApiClient _apiClient) : IRequestHandler<SnoozeReminderCommand, ApiResult>
+public sealed record SnoozeReminderCommand(string Id, SnoozeReminderReuqest SnoozeMinutes) : IRequest<ApiResult>;
+
+public class SnoozeReminderHandler(ReminderApiClient apiClient) : IRequestHandler<SnoozeReminderCommand, ApiResult>
 {
     public async Task<ApiResult> Handle(SnoozeReminderCommand request, CancellationToken cancellationToken)
     {
-        return await _apiClient.SnoozeReminder(request.Id, request.snoozeMinutes);
+        return await apiClient.SnoozeReminder(request.Id, request.SnoozeMinutes, cancellationToken);
     }
 }

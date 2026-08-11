@@ -17,13 +17,13 @@ namespace Todo.Api.Features.Todos.Endpoints
 
     public sealed record CreateTodoCommand(string Title, DateTime DueAt) : IRequest<TodoResponse>;
 
-    public class CreateTodoHandler(IMapper _mapper) : IRequestHandler<CreateTodoCommand, TodoResponse>
+    public class CreateTodoHandler(IMapper mapper) : IRequestHandler<CreateTodoCommand, TodoResponse>
     {
         public async Task<TodoResponse> Handle(CreateTodoCommand command, CancellationToken cancellationToken)
         {
             var newTodo = new TodoItem { Title = command.Title, DueAt = command.DueAt, CreatedAt = DateTime.UtcNow };
             await newTodo.SaveAsync();
-            return _mapper.Map<TodoResponse>(newTodo);
+            return mapper.Map<TodoResponse>(newTodo);
         }
     }
 

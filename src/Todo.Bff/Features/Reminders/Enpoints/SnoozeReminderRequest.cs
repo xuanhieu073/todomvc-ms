@@ -2,5 +2,5 @@ namespace Todo.Bff.Features.Reminders.Enpoints;
 
 public class SnoozeReminderReuqest
 {
-    public int minutes { get; set; }
+    public int Minutes { get; set; }
 }

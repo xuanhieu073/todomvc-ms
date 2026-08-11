@@ -17,11 +17,11 @@ public class DeleteTodoEndpoint : ICarterModule
 
     public sealed record DeleteTodoCommand(string Id) : IRequest<ApiResult>;
 
-    public class DeleteTodoHandler(TodoApiClient _apiClient) : IRequestHandler<DeleteTodoCommand, ApiResult>
+    public class DeleteTodoHandler(TodoApiClient apiClient) : IRequestHandler<DeleteTodoCommand, ApiResult>
     {
         public async Task<ApiResult> Handle(DeleteTodoCommand request, CancellationToken cancellationToken)
         {
-            var response = await _apiClient.DelteTodo(request.Id);
+            var response = await apiClient.DelteTodo(request.Id, cancellationToken);
             return response;
         }
     }

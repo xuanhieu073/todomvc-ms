@@ -15,14 +15,13 @@ public class CreateTodoEndpoint : ICarterModule
         });
     }
 
-    public sealed record CreateTodoCommand(CreateTodoRequest createTodoRequest) : IRequest<ApiResult>;
+    public sealed record CreateTodoCommand(CreateTodoRequest CreateTodoRequest) : IRequest<ApiResult>;
 
-    public class CreateTodoHandler(TodoApiClient _apiClient) : IRequestHandler<CreateTodoCommand, ApiResult>
+    public class CreateTodoHandler(TodoApiClient apiClient) : IRequestHandler<CreateTodoCommand, ApiResult>
     {
         public async Task<ApiResult> Handle(CreateTodoCommand request, CancellationToken cancellationToken)
         {
-
-            var response = await _apiClient.CreateTodoAsync(request.createTodoRequest);
+            var response = await apiClient.CreateTodoAsync(request.CreateTodoRequest, cancellationToken);
             return response;
         }
     }

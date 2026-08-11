@@ -41,3 +41,8 @@ Accept: application/json
 
 DELETE {{Todo.Bff_HostAddress}}/bff/todos/completed
 Accept: application/json
+
+###
+
+GET {{Todo.Bff_HostAddress}}/bff/stats/overview
+Content-Type: application/json

@@ -19,10 +19,10 @@ public class DimissReminderEndpoint : ICarterModule
 
 public sealed record DimissReminderCommand(string Id) : IRequest<ApiResult>;
 
-public class DimissReminderHandler(ReminderApiClient _apiClient) : IRequestHandler<DimissReminderCommand, ApiResult>
+public class DimissReminderHandler(ReminderApiClient apiClient) : IRequestHandler<DimissReminderCommand, ApiResult>
 {
     public Task<ApiResult> Handle(DimissReminderCommand request, CancellationToken cancellationToken)
     {
-        return _apiClient.DimissReminder(request.Id);
+        return apiClient.DimissReminder(request.Id, cancellationToken);
     }
 }

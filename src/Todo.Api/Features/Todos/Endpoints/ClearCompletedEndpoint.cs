@@ -23,7 +23,8 @@ namespace Todo.Api.Features.Todos.Endpoints
     {
         public async Task<long> Handle(ClearCompletedCommand request, CancellationToken cancellationToken)
         {
-            var deletedResult = await DB.DeleteAsync<TodoItem>(todo => todo.IsCompleted == true);
+            var deletedResult =
+                await DB.DeleteAsync<TodoItem>(todo => todo.IsCompleted == true, cancellation: cancellationToken);
             return deletedResult.IsAcknowledged switch
             {
                 true => deletedResult.DeletedCount,

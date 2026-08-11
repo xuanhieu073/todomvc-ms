@@ -7,13 +7,19 @@ namespace Todo.Api.Features.Reminders
     public class Reminder : Entity
     {
         [BsonRepresentation(BsonType.ObjectId)]
-        public string TodoId { get; set; }          // ref TodoItem
+        public string TodoId { get; set; } // ref TodoItem
+
         public DateTime DueAt { get; set; }
-        public ReminderState State { get; set; }     // Pending | Snoozed | Dismissed
+        public ReminderState State { get; set; } // Pending | Snoozed | Dismissed
         public DateTime? SnoozeUntil { get; set; }
-        public DateTime? FiredAt { get; set; }        // lúc scanner phát hiện tới hạn
+        public DateTime? FiredAt { get; set; } // lúc scanner phát hiện tới hạn
         public DateTime? DimissAt { get; set; }
     }
 
-    public enum ReminderState { Pending, Snoozed, Dismissed }
+    public enum ReminderState
+    {
+        Pending,
+        Snoozed,
+        Dismissed
+    }
 }

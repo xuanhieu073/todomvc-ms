@@ -13,23 +13,39 @@ builder.Services.AddCarter();
 builder.Services.AddMediatR(config =>
     config.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddHttpClient<TodoApiClient>(c => c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!));
-builder.Services.AddHttpClient<ReminderApiClient>(c => c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!));
+builder.Services.AddHttpClient<ReminderApiClient>(c =>
+    c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!));
+builder.Services.AddHttpClient<StatisticApiClient>(c =>
+    c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!));
 builder.Services.AddAzureClients(clientBuilder =>
 {
-    clientBuilder.AddServiceBusClient("Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;");
+    clientBuilder.AddServiceBusClient(builder.Configuration.GetConnectionString("ASBConnectionString"));
 });
-// builder.Services.AddSingleton<SseStreamManager>();
-builder.Services.AddSingleton<Queue1Broker>();
-builder.Services.AddSingleton<Queue2Broker>();
-builder.Services.AddHostedService<QueueConsumerWorker>();
+
+var domain = builder.Configuration["Mailgun:Domain"];
+var apiKey = builder.Configuration["Mailgun:ApiKey"];
+var fromEmail = builder.Configuration["Mailgun:DefaultFromEmail"];
+var emailBuilder = builder.Services.AddFluentEmail(fromEmail);
+if (builder.Environment.IsDevelopment())
+{
+    emailBuilder.AddSmtpSender("127.0.0.1", 2525);
+}
+else
+{
+    emailBuilder.AddMailGunSender(domain, apiKey);
+}
+
+builder.Services.AddSingleton<NotificationBroker>();
+builder.Services.AddHostedService<NotificationConsumerWorker>();
+builder.Services.AddHostedService<EmailConsumerWorker>();
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policy =>
     {
         policy.WithOrigins("http://localhost:4200")
-        .AllowAnyMethod()
-        .AllowAnyHeader();
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 

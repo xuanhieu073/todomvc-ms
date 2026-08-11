@@ -9,15 +9,18 @@ public class DimissReminderEnpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/api/reminders/{id}/dimiss", async ([AsParameters] DimissReminderCommand command, ISender sender) =>
+        app.MapPatch("/api/reminders/{id}/dimiss",
+            async ([AsParameters] DimissReminderCommand command, ISender sender) =>
             await sender.Send(command));
     }
+
     public sealed record DimissReminderCommand(string Id) : IRequest<Reminder?>;
+
     public class DimissReminderHandler : IRequestHandler<DimissReminderCommand, Reminder?>
     {
         public async Task<Reminder?> Handle(DimissReminderCommand request, CancellationToken cancellationToken)
         {
-            var reminder = await DB.Find<Reminder>().OneAsync(request.Id);
+            var reminder = await DB.Find<Reminder>().OneAsync(request.Id, cancellationToken);
 
             if (reminder == null)
             {
@@ -29,7 +32,7 @@ public class DimissReminderEnpoint : ICarterModule
             {
                 reminder.State = ReminderState.Dismissed;
                 reminder.DimissAt = DateTime.UtcNow;
-                await reminder.SaveAsync();
+                await reminder.SaveAsync(cancellation: cancellationToken);
                 return reminder;
             }
         }

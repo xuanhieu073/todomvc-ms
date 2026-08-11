@@ -8,20 +8,19 @@ namespace Todo.Bff.Features.Todos.Endpoints
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/bff/todos/{id}", async ([AsParameters] GetTodoQuery query, ISender sender) =>
-            {
-                return (await sender.Send(query)).ToHttpResponse();
-            });
+            app.MapGet("/bff/todos/{id}",
+                async ([AsParameters] GetTodoQuery query, ISender sender) =>
+                (await sender.Send(query)).ToHttpResponse());
         }
     }
 
     public sealed record GetTodoQuery(string Id) : IRequest<ApiResult>;
 
-    public class GetTodoHandler(TodoApiClient _apiClient) : IRequestHandler<GetTodoQuery, ApiResult>
+    public class GetTodoHandler(TodoApiClient apiClient) : IRequestHandler<GetTodoQuery, ApiResult>
     {
         public async Task<ApiResult> Handle(GetTodoQuery request, CancellationToken cancellationToken)
         {
-            var response = await _apiClient.GetTodoAsync(request.Id);
+            var response = await apiClient.GetTodoAsync(request.Id, cancellationToken);
             return response;
         }
     }

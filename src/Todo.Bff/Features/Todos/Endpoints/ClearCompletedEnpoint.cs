@@ -15,13 +15,13 @@ public class ClearCompleted : ICarterModule
         });
     }
 
-    public sealed record ClearCompletedCommand() : IRequest<ApiResult>;
+    public sealed record ClearCompletedCommand : IRequest<ApiResult>;
 
-    public class ClearCompletedHandler(TodoApiClient _apiClient) : IRequestHandler<ClearCompletedCommand, ApiResult>
+    public class ClearCompletedHandler(TodoApiClient apiClient) : IRequestHandler<ClearCompletedCommand, ApiResult>
     {
         public async Task<ApiResult> Handle(ClearCompletedCommand request, CancellationToken cancellationToken)
         {
-            var response = await _apiClient.ClearCompleted();
+            var response = await apiClient.ClearCompleted(cancellationToken);
             return response;
         }
     }

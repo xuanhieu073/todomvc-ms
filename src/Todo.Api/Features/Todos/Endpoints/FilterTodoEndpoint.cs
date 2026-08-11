@@ -11,25 +11,25 @@ namespace Todo.Api.Features.Todos.Endpoints
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/todos", async ([AsParameters] FilterTodoQuery query, ISender sender) =>
-                await sender.Send(query));
+            await sender.Send(query));
         }
     }
 
-    public sealed record FilterTodoQuery(string filter) : IRequest<List<TodoResponse>>;
+    public sealed record FilterTodoQuery(string Filter) : IRequest<List<TodoResponse>>;
 
-    public class FilterTodoHandler(IMapper _mapper) : IRequestHandler<FilterTodoQuery, List<TodoResponse>>
+    public class FilterTodoHandler(IMapper mapper) : IRequestHandler<FilterTodoQuery, List<TodoResponse>>
     {
         public async Task<List<TodoResponse>> Handle(FilterTodoQuery request, CancellationToken cancellationToken)
         {
             var query = DB.Queryable<TodoItem>();
-            query = request.filter switch
+            query = request.Filter switch
             {
                 "active" => query.Where(t => !t.IsCompleted),
                 "completed" => query.Where(t => t.IsCompleted),
                 _ => query
             };
-            var todos = await query.ToListAsync();
-            var result = _mapper.Map<List<TodoResponse>>(todos);
+            var todos = await query.ToListAsync(cancellationToken: cancellationToken);
+            var result = mapper.Map<List<TodoResponse>>(todos);
             return result;
         }
     }

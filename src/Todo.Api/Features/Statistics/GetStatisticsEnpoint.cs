@@ -15,7 +15,7 @@ public class GetStatisticsEndpoint : ICarterModule
     }
 }
 
-public sealed record GetStatisticsQuery() : IRequest<StatsOverviewDto>;
+public sealed record GetStatisticsQuery : IRequest<StatsOverviewDto>;
 
 public class GetStatisticsHandler : IRequestHandler<GetStatisticsQuery, StatsOverviewDto>
 {
@@ -167,19 +167,65 @@ public class GetStatisticsHandler : IRequestHandler<GetStatisticsQuery, StatsOve
                 }
             }
         ]")
-        .Tag("Total", nameof(StatsOverviewDto.Total))
-        .Tag("Active", nameof(StatsOverviewDto.Active))
-        .Tag("Completed", nameof(StatsOverviewDto.Completed))
-        .Tag("Overdue", nameof(StatsOverviewDto.Overdue))
-        .Tag("CompletedToday", nameof(StatsOverviewDto.CompletedToday))
-        .Tag("CompletedThisWeek", nameof(StatsOverviewDto.CompletedThisWeek))
-        .Tag("CompletionRate", nameof(StatsOverviewDto.CompletionRate));
+            .Tag("Total", nameof(StatsOverviewDto.Total))
+            .Tag("Active", nameof(StatsOverviewDto.Active))
+            .Tag("Completed", nameof(StatsOverviewDto.Completed))
+            .Tag("Overdue", nameof(StatsOverviewDto.Overdue))
+            .Tag("CompletedToday", nameof(StatsOverviewDto.CompletedToday))
+            .Tag("CompletedThisWeek", nameof(StatsOverviewDto.CompletedThisWeek))
+            .Tag("CompletionRate", nameof(StatsOverviewDto.CompletionRate));
 
-        //pipeline.Tag("Total", nameof(StatsOverviewDto.Total));
+        var sevenDaysAgoUtc = DateTime.UtcNow.AddDays(-7);
+        var pipelineCountByDay = new Template<TodoItem, DailyCountDto>(@"
+        [
+            {
+                '$match': {
+                    '<IsCompleted>': true,
+                    '<CompletedAt>': { '$gte': <CutoffDate> }
+                }
+            },
+            {
+                '$group': {
+                    '_id': { 
+                        '$dateToString': { 
+                            'format': '%Y-%m-%d', 
+                            'date': '$<CompletedAt>',
+                            'timezone': 'Asia/Saigon' 
+                        } 
+                    },
+                    'Count': { '$sum': 1 }
+                }
+            },
+            {
+                '$sort': { '_id': 1 }
+            },
+            {
+                '$project': {
+                    '_id': 0,
+                    'Date': '$_id',
+                    'Count': 1
+                }
+            }
+        ]")
+            .Path(t => t.IsCompleted)
+            .Path(t => t.CompletedAt)
+            .Tag("CutoffDate", $"ISODate('{sevenDaysAgoUtc:yyyy-MM-ddTHH:mm:ss.fffZ}')");
 
-        //var results = await DB.PipelineAsync<TodoItem, StatsOverviewDto>(pipeline);
-        var results = await DB.PipelineCursorAsync(pipeline);
-        var statsOverview = results.FirstOrDefault();
+        var overviewStats = (await DB.PipelineCursorAsync(pipeline, cancellation: cancellationToken)).FirstOrDefault();
+
+        List<DailyCountDto> dailyCompletedCount =
+            await DB.PipelineAsync(pipelineCountByDay, cancellation: cancellationToken);
+
+        var now = DateTime.UtcNow;
+        var full7DaysResult = Enumerable.Range(0, 7)
+            .Select(offset => now.AddDays(-offset))
+            .Select(dateStr => new DailyCountDto(DateOnly.FromDateTime((dateStr)),
+                dailyCompletedCount.FirstOrDefault(r => r.Date == DateOnly.FromDateTime(dateStr))?.Count ?? 0
+            ))
+            .OrderBy(r => r.Date) // Sort oldest to newest
+            .ToList();
+
+        var statsOverview = overviewStats with { CompletedByDay = full7DaysResult };
 
         return statsOverview;
     }

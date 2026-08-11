@@ -8,21 +8,20 @@ public class UpdateTodoEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPut("/bff/todos/{id}", async (string Id, UpdateTodoRequest updateTodoRequest, ISender sender) =>
+        app.MapPut("/bff/todos/{id}", async (string id, UpdateTodoRequest updateTodoRequest, ISender sender) =>
         {
-            var command = new UpdateTodoCommand(Id, updateTodoRequest);
+            var command = new UpdateTodoCommand(id, updateTodoRequest);
             return (await sender.Send(command)).ToHttpResponse();
         });
     }
 
-    public sealed record UpdateTodoCommand(string Id, UpdateTodoRequest updateTodoRequest) : IRequest<ApiResult>;
+    public sealed record UpdateTodoCommand(string Id, UpdateTodoRequest UpdateTodoRequest) : IRequest<ApiResult>;
 
-    public class UpdateTodoHandler(TodoApiClient _apiClient) : IRequestHandler<UpdateTodoCommand, ApiResult>
+    public class UpdateTodoHandler(TodoApiClient apiClient) : IRequestHandler<UpdateTodoCommand, ApiResult>
     {
         public async Task<ApiResult> Handle(UpdateTodoCommand request, CancellationToken cancellationToken)
         {
-
-            var response = await _apiClient.UpdateTodoAsync(request.Id, request.updateTodoRequest);
+            var response = await apiClient.UpdateTodoAsync(request.Id, request.UpdateTodoRequest, cancellationToken);
             return response;
         }
     }

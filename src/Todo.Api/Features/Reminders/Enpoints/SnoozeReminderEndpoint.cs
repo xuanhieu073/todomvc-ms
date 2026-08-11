@@ -10,15 +10,17 @@ public class SnoozeReminderEnpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/api/reminders/{id}/snooze", (string Id, SnoozeReminderCommand command, ISender sender) =>
-            sender.Send(command with { Id = Id }));
+        app.MapPatch("/api/reminders/{id}/snooze", (string id, SnoozeReminderCommand command, ISender sender) =>
+            sender.Send(command with { Id = id }));
     }
-    public sealed record SnoozeReminderCommand(string Id, int minutes) : IRequest<Reminder?>;
+
+    public sealed record SnoozeReminderCommand(string Id, int Minutes) : IRequest<Reminder?>;
+
     public class SnoozeReminderHandler : IRequestHandler<SnoozeReminderCommand, Reminder?>
     {
         public async Task<Reminder?> Handle(SnoozeReminderCommand request, CancellationToken cancellationToken)
         {
-            var reminder = await DB.Find<Reminder>().OneAsync(request.Id);
+            var reminder = await DB.Find<Reminder>().OneAsync(request.Id, cancellationToken);
             if (reminder == null)
             {
                 var error = new ValidationError("Id", $"The specified Todo ID does not exist.");
@@ -28,8 +30,8 @@ public class SnoozeReminderEnpoint : ICarterModule
             else
             {
                 reminder.State = ReminderState.Snoozed;
-                reminder.SnoozeUntil = DateTime.UtcNow.AddSeconds(request.minutes);
-                await reminder.SaveAsync();
+                reminder.SnoozeUntil = DateTime.UtcNow.AddSeconds(request.Minutes);
+                await reminder.SaveAsync(cancellation: cancellationToken);
                 return reminder;
             }
         }
@@ -39,7 +41,7 @@ public class SnoozeReminderEnpoint : ICarterModule
     {
         public SnoozeReminderCommandValidator()
         {
-            RuleFor(x => x.minutes).NotNull().GreaterThan(0);
+            RuleFor(x => x.Minutes).NotNull().GreaterThan(0);
         }
     }
 }

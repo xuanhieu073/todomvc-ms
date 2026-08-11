@@ -5,16 +5,9 @@ using Todo.Bff.Common;
 
 namespace Todo.Bff.Clients
 {
-
-    public class ApiClient
+    public class ApiClient(HttpClient httpClient)
     {
-        private readonly HttpClient _http;
         private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
-
-        public ApiClient(HttpClient httpClient)
-        {
-            _http = httpClient;
-        }
 
         protected Task<ApiResult> DeleteAsync<TResponse>(
             string path, CancellationToken ct = default)
@@ -38,7 +31,7 @@ namespace Todo.Bff.Clients
             HttpResponseMessage response;
             try
             {
-                response = await _http.SendAsync(request, cancellationToken);
+                response = await httpClient.SendAsync(request, cancellationToken);
             }
             catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
@@ -51,25 +44,25 @@ namespace Todo.Bff.Clients
             {
                 case HttpStatusCode.OK:
                 case HttpStatusCode.Created:
-                    {
-                        var data = Deserialize<TResponse>(raw);
-                        return ApiSucessResult<TResponse>.Success(data!, (int)response.StatusCode);
-                    }
+                {
+                    var data = Deserialize<TResponse>(raw);
+                    return ApiSucessResult<TResponse>.Success(data!, (int)response.StatusCode);
+                }
 
                 case HttpStatusCode.NoContent:
                     return ApiSucessResult<TResponse>.Success(default!, (int)response.StatusCode);
 
                 case HttpStatusCode.BadRequest:
-                    {
-                        var error = Deserialize<Todo.Bff.Common.Error>(raw);
-                        throw new ValidationException(error?.errors!);
-                    }
+                {
+                    var error = Deserialize<Error>(raw);
+                    throw new ValidationException(error?.Errors!);
+                }
 
                 case HttpStatusCode.NotFound:
-                    {
-                        var error = Deserialize<Todo.Bff.Common.Error>(raw);
-                        throw new NotFoundException(error?.errors!);
-                    }
+                {
+                    var error = Deserialize<Error>(raw);
+                    throw new NotFoundException(error?.Errors!);
+                }
                 case HttpStatusCode.InternalServerError:
                     throw new Exception("Internal Server Error");
                 case HttpStatusCode.BadGateway:
@@ -83,8 +76,14 @@ namespace Todo.Bff.Clients
         private static TResponse? Deserialize<TResponse>(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return default;
-            try { return JsonSerializer.Deserialize<TResponse>(raw, JsonOpts); }
-            catch (JsonException) { return default; }
+            try
+            {
+                return JsonSerializer.Deserialize<TResponse>(raw, JsonOpts);
+            }
+            catch (JsonException)
+            {
+                return default;
+            }
         }
     }
 }

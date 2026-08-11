@@ -2,20 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Todo.Api.Common;
 
-public sealed class ValidationExceptionHandlingMiddleware
+public sealed class ValidationExceptionHandlingMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public ValidationExceptionHandlingMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         try
         {
-            await _next(context);
+            await next(context);
         }
         catch (ValidationException exception)
         {
@@ -24,13 +17,12 @@ public sealed class ValidationExceptionHandlingMiddleware
                 Status = StatusCodes.Status400BadRequest,
                 Type = "ValidationFailure",
                 Title = "Validation error",
-                Detail = "One or more validation errors has occurred"
+                Detail = "One or more validation errors has occurred",
+                Extensions =
+                {
+                    ["errors"] = exception.Errors
+                }
             };
-
-            if (exception.Errors is not null)
-            {
-                problemDetails.Extensions["errors"] = exception.Errors;
-            }
 
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
 
@@ -43,19 +35,18 @@ public sealed class ValidationExceptionHandlingMiddleware
                 Status = StatusCodes.Status404NotFound,
                 Type = "NotFound",
                 Title = "Resource not found",
-                Detail = "The requested resource could not be found."
+                Detail = "The requested resource could not be found.",
+                Extensions =
+                {
+                    ["errors"] = exception.Errors
+                }
             };
-
-            if (exception.Errors is not null)
-            {
-                problemDetails.Extensions["errors"] = exception.Errors;
-            }
 
             context.Response.StatusCode = StatusCodes.Status404NotFound;
 
             await context.Response.WriteAsJsonAsync(problemDetails);
         }
-        //catch (Exception exception)
+        //catch (Exception)
         //{
         //    var problemDetails = new ProblemDetails
         //    {
