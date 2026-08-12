@@ -1,10 +1,14 @@
 using Carter;
+using DotNetEnv;
 using FluentValidation;
 using Microsoft.Extensions.Azure;
 using MongoDB.Driver;
 using MongoDB.Entities;
 using Todo.Api.Common;
 using Todo.Api.Features.Reminders;
+
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env");
+Env.Load(envPath);
 
 var builder = WebApplication.CreateBuilder(args);
 
