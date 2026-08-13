@@ -8,7 +8,7 @@ namespace Todo.Api.Features.Reminders
     {
         [BsonRepresentation(BsonType.ObjectId)]
         public string TodoId { get; set; } // ref TodoItem
-
+        public string OwnerId { get; set; }
         public DateTime DueAt { get; set; }
         public ReminderState State { get; set; } // Pending | Snoozed | Dismissed
         public DateTime? SnoozeUntil { get; set; }

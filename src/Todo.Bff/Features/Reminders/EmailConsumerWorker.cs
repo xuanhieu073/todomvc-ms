@@ -23,23 +23,25 @@ namespace Todo.Bff.Features.Reminders
             try
             {
                 var list = JsonSerializer.Deserialize<List<PendingReminderDto>>(jsonBody);
-                if (list != null)
+                var todoGropuByUser = list?.GroupBy(x => x.Id);
+                if (todoGropuByUser != null)
                 {
-                    // TODO: send an overdue email
-                    Console.WriteLine($"i already read this message: {string.Join(",", list.Select(x => x.Title))}");
-                    using var scope = serviceProvider.CreateScope();
-                    var fluentEmail = scope.ServiceProvider.GetRequiredService<IFluentEmail>();
-                    var response = await fluentEmail
-                        .To("xuanhieu073@gmail.com")
-                        .Subject("Quick Reminder")
-                        .Body(
-                            $"<h1>Just a quick reminder that you need to finish {string.Join(",", list.Select(x => x.Title))}</h1>",
-                            isHtml: true) // Set isHtml to true if sending html
-                        .SendAsync();
-
-                    if (!response.Successful)
+                    foreach (var todosByUser in todoGropuByUser)
                     {
-                        throw new Exception(string.Join(",", response.ErrorMessages));
+                        using var scope = serviceProvider.CreateScope();
+                        var fluentEmail = scope.ServiceProvider.GetRequiredService<IFluentEmail>();
+                        var response = await fluentEmail
+                            .To(todosByUser.First().OwnerEmail)
+                            .Subject("Quick Reminder")
+                            .Body(
+                                $"<h1>Just a quick reminder that you need to finish {string.Join(",", todosByUser.Select(x => x.Title))}</h1>",
+                                isHtml: true)
+                            .SendAsync();
+
+                        if (!response.Successful)
+                        {
+                            throw new Exception(string.Join(",", response.ErrorMessages));
+                        }
                     }
                 }
 

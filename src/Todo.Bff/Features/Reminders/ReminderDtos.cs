@@ -15,6 +15,7 @@ public class PendingReminderDto
 {
     public string Id { get; set; }
     public string OwnerId { get; set; }
+    public string OwnerEmail { get; set; }
     public string TodoId { get; set; }
     public string Title { get; set; }
     public ReminderState State { get; set; }
@@ -22,4 +23,9 @@ public class PendingReminderDto
     public DateTime FireAt { get; set; }
 }
 
-public enum ReminderState { Pending, Snoozed, Dismissed }
+public enum ReminderState
+{
+    Pending,
+    Snoozed,
+    Dismissed
+}

@@ -24,6 +24,7 @@ namespace Todo.Api.Features.Reminders
     {
         public string Id { get; set; }
         public string OwnerId { get; set; }
+        public string OwnerEmail { get; set; }
         public string TodoId { get; set; }
         public string Title { get; set; }
         public ReminderState State { get; set; }

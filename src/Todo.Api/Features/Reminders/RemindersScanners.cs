@@ -3,6 +3,7 @@ using Azure.Messaging.ServiceBus;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using MongoDB.Entities;
+using Todo.Api.Features.Authentications;
 using Todo.Api.Features.Todos;
 
 namespace Todo.Api.Features.Reminders
@@ -55,11 +56,21 @@ namespace Todo.Api.Features.Reminders
                     DB.Collection<Reminder>(),
                     todo => todo.ID,
                     reminder => reminder.TodoId,
-                    (todo, reminders) => new { todo, reminders }
+                    (todo, reminder) => new { todo, reminder }
                 )
                 .SelectMany(
-                    x => x.reminders.DefaultIfEmpty(),
+                    x => x.reminder.DefaultIfEmpty(),
                     (x, reminder) => new { x.todo, reminder }
+                )
+                .GroupJoin(
+                    DB.Collection<User>(),
+                    x => x.todo.OwnerId,
+                    user => user.ID,
+                    (x, user) => new { x.todo, x.reminder, user }
+                )
+                .SelectMany(
+                    x => x.user.DefaultIfEmpty(),
+                    (x, user) => new { x.todo, x.reminder, user }
                 )
                 .Where(x => x.todo.DueAt <= now && x.todo.IsCompleted == false &&
                             (x.reminder == null || x.reminder.State == ReminderState.Dismissed))
@@ -71,7 +82,7 @@ namespace Todo.Api.Features.Reminders
                     .Where(x => x.reminder == null)
                     .Select(x => new Reminder
                     {
-                        TodoId = x.todo.ID, State = ReminderState.Pending, FiredAt = DateTime.UtcNow,
+                        TodoId = x.todo.ID, OwnerId = x.todo.OwnerId, State = ReminderState.Pending, FiredAt = DateTime.UtcNow,
                         DueAt = x.todo.DueAt
                     })
                     .ToList();
@@ -79,7 +90,11 @@ namespace Todo.Api.Features.Reminders
                 {
                     await DB.SaveAsync(newReminders, cancellation: cancellationToken);
                     var newPendingReminders = newReminders.Join(todosNeedToReminder, r => r.TodoId, x => x.todo.ID,
-                            (r, x) => new PendingReminderDto { OwnerId = x.todo.OwnerId, Id = r.ID, TodoId = r.TodoId, Title = x.todo.Title })
+                            (r, x) => new PendingReminderDto
+                            {
+                                OwnerEmail = x.user!.Email, OwnerId = x.todo.OwnerId, Id = r.ID, TodoId = r.TodoId,
+                                Title = x.todo.Title
+                            })
                         .ToList();
                     string jsonPayload = JsonSerializer.Serialize(newPendingReminders);
                     ServiceBusMessage notificationMessage = new ServiceBusMessage(jsonPayload);
@@ -117,7 +132,8 @@ namespace Todo.Api.Features.Reminders
 
                 var newPendingReminders = snoozedReminders.Join(overSnoozedRemindersInfo, r => r.TodoId,
                     x => x.todo!.ID,
-                    (r, x) => new PendingReminderDto { OwnerId = x.todo!.OwnerId, Id = r.ID, TodoId = r.TodoId, Title = x.todo!.Title }).ToList();
+                    (r, x) => new PendingReminderDto
+                        { OwnerId = x.todo!.OwnerId, Id = r.ID, TodoId = r.TodoId, Title = x.todo!.Title }).ToList();
                 string jsonPayload = JsonSerializer.Serialize(newPendingReminders);
                 ServiceBusMessage notificationMessage = new ServiceBusMessage(jsonPayload);
                 notificationMessage.ApplicationProperties.Add("IsNotification", true);
@@ -153,7 +169,8 @@ namespace Todo.Api.Features.Reminders
 
                 await remindersNeedToDimiss.SaveAsync(cancellation: cancellationToken);
                 string jsonPayload =
-                    JsonSerializer.Serialize(remindersNeedToDimissModel.Select(x => new PendingReminderDto { Id = x.reminder.ID, OwnerId = x.todo!.OwnerId }));
+                    JsonSerializer.Serialize(remindersNeedToDimissModel.Select(x => new PendingReminderDto
+                        { Id = x.reminder.ID, OwnerId = x.reminder.OwnerId }));
                 ServiceBusMessage notificationMessage = new ServiceBusMessage(jsonPayload);
                 notificationMessage.ApplicationProperties.Add("IsNotification", true);
                 notificationMessage.ApplicationProperties.Add("NotificationType", "Remove");
