@@ -1,28 +1,29 @@
 ﻿using AutoMapper;
-using Carter;
 using FluentValidation;
 using MediatR;
 using MongoDB.Entities;
+using Todo.Api.Common;
 
 namespace Todo.Api.Features.Todos.Endpoints
 {
-    public class CreateTodoEndpoint : ICarterModule
+    public partial class TodoEndpoint
     {
-        public void AddRoutes(IEndpointRouteBuilder app)
+        public void AddCreateTodoRoute(IEndpointRouteBuilder app)
         {
-            app.MapPost("api/todos", async (CreateTodoCommand command, ISender sender) =>
+            app.MapPost("", async (CreateTodoCommand command, ISender sender) =>
                 await sender.Send(command));
         }
     }
 
-    public sealed record CreateTodoCommand(string Title, DateTime DueAt) : IRequest<TodoResponse>;
+    public sealed record CreateTodoCommand(string Title, DateTime DueAt) : UserBoundRequest, IRequest<TodoResponse>;
 
     public class CreateTodoHandler(IMapper mapper) : IRequestHandler<CreateTodoCommand, TodoResponse>
     {
         public async Task<TodoResponse> Handle(CreateTodoCommand command, CancellationToken cancellationToken)
         {
-            var newTodo = new TodoItem { Title = command.Title, DueAt = command.DueAt, CreatedAt = DateTime.UtcNow };
-            await newTodo.SaveAsync();
+            var newTodo = new TodoItem
+                { OwnerId = command.UserId, Title = command.Title, DueAt = command.DueAt, CreatedAt = DateTime.UtcNow };
+            await newTodo.SaveAsync(cancellation: cancellationToken);
             return mapper.Map<TodoResponse>(newTodo);
         }
     }

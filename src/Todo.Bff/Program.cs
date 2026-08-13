@@ -8,15 +8,24 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<ClientAuthDelegatingHandler>();
 builder.Services.AddOpenApi();
 builder.Services.AddCarter();
 builder.Services.AddMediatR(config =>
     config.RegisterServicesFromAssembly(typeof(Program).Assembly));
-builder.Services.AddHttpClient<TodoApiClient>(c => c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!));
+builder.Services.AddHttpClient<TodoApiClient>(c =>
+        c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!))
+    .AddHttpMessageHandler<ClientAuthDelegatingHandler>();
 builder.Services.AddHttpClient<ReminderApiClient>(c =>
-    c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!));
+        c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!))
+    .AddHttpMessageHandler<ClientAuthDelegatingHandler>();
 builder.Services.AddHttpClient<StatisticApiClient>(c =>
-    c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!));
+        c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!))
+    .AddHttpMessageHandler<ClientAuthDelegatingHandler>();
+builder.Services.AddHttpClient<AuthApiClient>(c =>
+        c.BaseAddress = new Uri(builder.Configuration["TodoApi:BaseUrl"]!))
+    .AddHttpMessageHandler<ClientAuthDelegatingHandler>();
 builder.Services.AddAzureClients(clientBuilder =>
 {
     clientBuilder.AddServiceBusClient(builder.Configuration.GetConnectionString("ASBConnectionString"));

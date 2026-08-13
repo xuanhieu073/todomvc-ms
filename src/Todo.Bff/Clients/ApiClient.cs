@@ -21,6 +21,7 @@ namespace Todo.Bff.Clients
             HttpMethod method, string path, object? body, CancellationToken cancellationToken)
         {
             using var request = new HttpRequestMessage(method, path);
+            //request.Headers.Add("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiJ1c2VyLXVuaXF1ZS1pZC0wMDEiLCJlbWFpbCI6InVzZXJuYW1lQG1haWxpbmF0b3IuY29tIiwicm9sZSI6IlVzZXIiLCJuYmYiOjE3ODY1MjcyMzMsImV4cCI6MTc4NjUzMDgzMywiaWF0IjoxNzg2NTI3MjMzLCJpc3MiOiJZb3VyQXBpSXNzdWVyIiwiYXVkIjoiWW91ckFwaUF1ZGllbmNlIn0.0tXWwvk5Y7lFupo0E2FDJ785Rcsn28MUGRwsM6j5Aj4");
 
             if (body is not null)
             {
@@ -63,6 +64,12 @@ namespace Todo.Bff.Clients
                     var error = Deserialize<Error>(raw);
                     throw new NotFoundException(error?.Errors!);
                 }
+
+                case HttpStatusCode.Unauthorized:
+                {
+                    throw new UnauthorizedException("UnauthorizedException");
+                }
+
                 case HttpStatusCode.InternalServerError:
                     throw new Exception("Internal Server Error");
                 case HttpStatusCode.BadGateway:

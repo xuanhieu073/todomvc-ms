@@ -1,9 +1,14 @@
-﻿using MongoDB.Entities;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Entities;
 
 namespace Todo.Api.Features.Todos
 {
-    public class TodoItem : Entity   // ID string do MongoDB.Entities sinh
+    public class TodoItem : Entity // ID string do MongoDB.Entities sinh
     {
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string OwnerId { get; set; }
+
         public string Title { get; set; }
         public bool IsCompleted { get; set; }
         public DateTime CreatedAt { get; set; }

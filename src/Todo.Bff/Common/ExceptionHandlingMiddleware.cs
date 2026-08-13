@@ -21,6 +21,9 @@ public sealed class NotFoundException(IEnumerable<ValidationError> errors)
     public IEnumerable<ValidationError> Errors { get; } = errors;
 }
 
+public sealed class UnauthorizedException(string errorMessage)
+    : Exception(errorMessage);
+
 public sealed class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
@@ -70,6 +73,24 @@ public sealed class ExceptionHandlingMiddleware
             };
 
             context.Response.StatusCode = StatusCodes.Status404NotFound;
+
+            await context.Response.WriteAsJsonAsync(problemDetails);
+        }
+        catch (UnauthorizedException exception)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Type = "Unauthorized",
+                Title = "Unauthorized",
+                Detail = "You must provide valid authentication credentials to access this resource.",
+                Extensions = new Dictionary<string, object?>
+                {
+                    { "errors", exception.Message }
+                }
+            };
+
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 
             await context.Response.WriteAsJsonAsync(problemDetails);
         }

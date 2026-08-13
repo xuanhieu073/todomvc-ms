@@ -1,8 +1,10 @@
-@Todo.Api_HostAddress = http://localhost:5123
+@Todo.Api_HostAddress = https://localhost:7216
 
 
 GET {{Todo.Api_HostAddress}}/api/todos?filter=all
 Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiJ1c2VyLXVuaXF1ZS1pZC0wMDEiLCJlbWFpbCI6InVzZXJuYW1lQG1haWxpbmF0b3IuY29tIiwicm9sZSI6IlVzZXIiLCJuYmYiOjE3ODY1MjcyMzMsImV4cCI6MTc4NjUzMDgzMywiaWF0IjoxNzg2NTI3MjMzLCJpc3MiOiJZb3VyQXBpSXNzdWVyIiwiYXVkIjoiWW91ckFwaUF1ZGllbmNlIn0.0tXWwvk5Y7lFupo0E2FDJ785Rcsn28MUGRwsM6j5Aj4
+
 
 ###
 
@@ -37,7 +39,7 @@ Accept: application/json
 
 ###
 
-DELETE {{Todo.Api_HostAddress}}/api/todos/6a6c5bd687054ba0f96c4ec0
+DELETE {{Todo.Api_HostAddress}}/api/todos/6a7cb1479e10b5a44648bf15
 Accept: application/json
 
 ###
@@ -98,3 +100,24 @@ Content-Type: application/json
 
 GET {{Todo.Api_HostAddress}}/api/stats/overview
 Content-Type: application/json
+
+###
+
+POST {{Todo.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "Email": "username@mailinator.com",
+  "Password": "password",
+  "ConfirmPassword": "password"
+}
+
+###
+
+POST {{Todo.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "Email": "username@mailinator.com",
+  "Password": "password"
+}

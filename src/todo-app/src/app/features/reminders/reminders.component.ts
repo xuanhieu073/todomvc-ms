@@ -3,6 +3,9 @@ import { ReminderItemComponent } from './components/reminder-item.component';
 import { RemindersStore } from './reminders.store';
 import { AsyncPipe } from '@angular/common';
 import { Reminder } from '../todos/models/reminder';
+import { AuthStore } from '../../core/store/auth.store';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { take } from 'rxjs';
 
 @Component({
   selector: 'app-reminders',
@@ -50,11 +53,12 @@ import { Reminder } from '../todos/models/reminder';
   `,
 })
 export class RemindersComponent implements OnDestroy {
-  remindersStore = inject(RemindersStore);
+  private readonly authStore = inject(AuthStore);
+  private readonly remindersStore = inject(RemindersStore);
   pendingReminders$ = this.remindersStore.pendingReminders$;
   items = ['stuff', 'things', 'cheese', 'paper'];
 
-  eventSource: EventSource;
+  eventSource: EventSource | null = null;
   handleAddReminder = (event: MessageEvent) => {
     const addReminders = JSON.parse(event.data) as Reminder[];
     console.log('Reminder Update received:', addReminders);
@@ -69,22 +73,28 @@ export class RemindersComponent implements OnDestroy {
   };
 
   constructor() {
-    this.eventSource = new EventSource('https://localhost:7160/bff/reminders/stream');
-    this.eventSource.onmessage = (event) => {
-      console.log('Generic message received:', event.data);
-    };
+    this.authStore.accessToken$.pipe(take(1)).subscribe((token) => {
+      console.log(token);
+      this.eventSource = new EventSource(
+        `https://localhost:7160/bff/reminders/stream?token=${encodeURIComponent(token || '')}`,
+      );
 
-    this.eventSource.addEventListener('reminder-fired', this.handleAddReminder);
-    this.eventSource.addEventListener('reminder-removed', this.handleRemoveReminder);
+      this.eventSource.onmessage = (event) => {
+        console.log('Generic message received:', event.data);
+      };
 
-    this.eventSource.onerror = (error) => {
-      console.error('EventSource failed:', error);
-    };
+      this.eventSource.addEventListener('reminder-fired', this.handleAddReminder);
+      this.eventSource.addEventListener('reminder-removed', this.handleRemoveReminder);
+
+      this.eventSource.onerror = (error) => {
+        console.error('EventSource failed:', error);
+      };
+    });
   }
 
   ngOnDestroy(): void {
-    this.eventSource.close();
-    this.eventSource.removeEventListener('receive', this.handleAddReminder);
-    this.eventSource.removeEventListener('remove', this.handleRemoveReminder);
+    this.eventSource?.close();
+    this.eventSource?.removeEventListener('receive', this.handleAddReminder);
+    this.eventSource?.removeEventListener('remove', this.handleRemoveReminder);
   }
 }

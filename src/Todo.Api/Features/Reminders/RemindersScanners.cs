@@ -79,7 +79,7 @@ namespace Todo.Api.Features.Reminders
                 {
                     await DB.SaveAsync(newReminders, cancellation: cancellationToken);
                     var newPendingReminders = newReminders.Join(todosNeedToReminder, r => r.TodoId, x => x.todo.ID,
-                            (r, x) => new PendingReminderDto { Id = r.ID, TodoId = r.TodoId, Title = x.todo.Title })
+                            (r, x) => new PendingReminderDto { OwnerId = x.todo.OwnerId, Id = r.ID, TodoId = r.TodoId, Title = x.todo.Title })
                         .ToList();
                     string jsonPayload = JsonSerializer.Serialize(newPendingReminders);
                     ServiceBusMessage notificationMessage = new ServiceBusMessage(jsonPayload);
@@ -117,7 +117,7 @@ namespace Todo.Api.Features.Reminders
 
                 var newPendingReminders = snoozedReminders.Join(overSnoozedRemindersInfo, r => r.TodoId,
                     x => x.todo!.ID,
-                    (r, x) => new PendingReminderDto { Id = r.ID, TodoId = r.TodoId, Title = x.todo!.Title }).ToList();
+                    (r, x) => new PendingReminderDto { OwnerId = x.todo!.OwnerId, Id = r.ID, TodoId = r.TodoId, Title = x.todo!.Title }).ToList();
                 string jsonPayload = JsonSerializer.Serialize(newPendingReminders);
                 ServiceBusMessage notificationMessage = new ServiceBusMessage(jsonPayload);
                 notificationMessage.ApplicationProperties.Add("IsNotification", true);
@@ -125,7 +125,7 @@ namespace Todo.Api.Features.Reminders
                 await sender.SendMessageAsync(notificationMessage, cancellationToken);
             }
 
-            var remindersNeedToDimiss = await DB.Collection<Reminder>()
+            var remindersNeedToDimissModel = await DB.Collection<Reminder>()
                 .AsQueryable()
                 .GroupJoin(
                     DB.Collection<TodoItem>(),
@@ -138,8 +138,10 @@ namespace Todo.Api.Features.Reminders
                     (x, todo) => new { x.reminder, todo }
                 )
                 .Where(x => (x.todo == null || x.todo.IsCompleted == true) && x.reminder.DimissAt == null)
-                .Select(x => x.reminder)
+                //.Select(x => x.reminder)
                 .ToListAsync(cancellationToken: cancellationToken);
+
+            var remindersNeedToDimiss = remindersNeedToDimissModel.Select(x => x.reminder);
 
             if (remindersNeedToDimiss.Any())
             {
@@ -151,7 +153,7 @@ namespace Todo.Api.Features.Reminders
 
                 await remindersNeedToDimiss.SaveAsync(cancellation: cancellationToken);
                 string jsonPayload =
-                    JsonSerializer.Serialize(remindersNeedToDimiss.Select(r => new PendingReminderDto { Id = r.ID }));
+                    JsonSerializer.Serialize(remindersNeedToDimissModel.Select(x => new PendingReminderDto { Id = x.reminder.ID, OwnerId = x.todo!.OwnerId }));
                 ServiceBusMessage notificationMessage = new ServiceBusMessage(jsonPayload);
                 notificationMessage.ApplicationProperties.Add("IsNotification", true);
                 notificationMessage.ApplicationProperties.Add("NotificationType", "Remove");

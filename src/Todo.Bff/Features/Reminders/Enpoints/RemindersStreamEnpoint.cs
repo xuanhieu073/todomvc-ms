@@ -1,8 +1,12 @@
-using System.Runtime.CompilerServices;
 using Carter;
-using System.Net.ServerSentEvents;
-using System.Threading.Channels;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using System.Net.ServerSentEvents;
+using System.Runtime.CompilerServices;
+using System.Security.Claims;
+using System.Threading.Channels;
+using System.IdentityModel.Tokens.Jwt;
+
 
 namespace Todo.Bff.Features.Reminders.Enpoints;
 
@@ -11,14 +15,25 @@ public class RemindersStream : ICarterModule
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         app.MapGet("/bff/reminders/stream", (
+            [FromQuery] string token,
             NotificationBroker notificationBroker,
             CancellationToken cancellationToken) =>
         {
             try
             {
+                var handler = new JwtSecurityTokenHandler();
+                var decocedtoken = handler.ReadJwtToken(token);
+
+                // Look for either the XML schema identifier or the short standard 'sub' type
+                var nameIdentifierClaim = decocedtoken.Claims.FirstOrDefault(c =>
+                    c.Type == JwtRegisteredClaimNames.NameId);
+
+                string? userId = nameIdentifierClaim?.Value;
+
                 return Task.FromResult(
                     TypedResults.ServerSentEvents(
-                        MapToSseMessage(notificationBroker.ToAsyncEnumerable(cancellationToken: cancellationToken))));
+                        MapToSseMessage(userId,
+                            notificationBroker.ToAsyncEnumerable(cancellationToken: cancellationToken))));
             }
             catch (Exception exception)
             {
@@ -27,6 +42,7 @@ public class RemindersStream : ICarterModule
         });
 
         static async IAsyncEnumerable<SseItem<List<PendingReminderDto>>> MapToSseMessage(
+            string? userId,
             IAsyncEnumerable<NotificaitonEvent> stream)
         {
             await foreach (var data in stream)
@@ -34,14 +50,14 @@ public class RemindersStream : ICarterModule
                 if (data is FiredNotificationEvent)
                 {
                     yield return new SseItem<List<PendingReminderDto>>(
-                        data: data.Reminders,
+                        data: data.Reminders.Where(r => r.OwnerId == userId).ToList(),
                         eventType: "reminder-fired"
                     );
                 }
-                else if (data is RemovedNotificationEvent)
+                else if (data is RemovedNotificationEvent && data.Reminders.First().OwnerId == userId)
                 {
                     yield return new SseItem<List<PendingReminderDto>>(
-                        data: data.Reminders,
+                        data: data.Reminders.Where(r => r.OwnerId == userId).ToList(),
                         eventType: "reminder-removed"
                     );
                 }

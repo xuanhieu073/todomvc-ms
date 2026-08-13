@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Todo.Api.Common;
 
-public sealed class ValidationExceptionHandlingMiddleware(RequestDelegate next)
+public sealed class ExceptionHandlingMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -46,19 +46,37 @@ public sealed class ValidationExceptionHandlingMiddleware(RequestDelegate next)
 
             await context.Response.WriteAsJsonAsync(problemDetails);
         }
-        //catch (Exception)
-        //{
-        //    var problemDetails = new ProblemDetails
-        //    {
-        //        Status = StatusCodes.Status500InternalServerError,
-        //        Type = "InternalServerError",
-        //        Title = "Internal server error",
-        //        Detail = "An unexpected error has occurred."
-        //    };
+        catch (UnauthorizedException exception)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Type = "Unauthorized",
+                Title = "Unauthorized access",
+                Detail = "You do not have permission to access this resource.",
+                Extensions =
+                {
+                    ["errors"] = new[] { exception.Message }
+                }
+            };
 
-        //    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
 
-        //    await context.Response.WriteAsJsonAsync(problemDetails);
-        //}
+            await context.Response.WriteAsJsonAsync(problemDetails);
+        }
+        // catch (Exception)
+        // {
+        //     var problemDetails = new ProblemDetails
+        //     {
+        //         Status = StatusCodes.Status500InternalServerError,
+        //         Type = "InternalServerError",
+        //         Title = "Internal server error",
+        //         Detail = "An unexpected error has occurred."
+        //     };
+
+        //     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+        //     await context.Response.WriteAsJsonAsync(problemDetails);
+        // }
     }
 }

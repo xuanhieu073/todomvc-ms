@@ -1,28 +1,28 @@
 ﻿using AutoMapper;
-using Carter;
 using MediatR;
 using MongoDB.Entities;
 using Todo.Api.Common;
 
 namespace Todo.Api.Features.Todos.Endpoints
 {
-    public class ToggleIsCompletedEndpoint : ICarterModule
+    public partial class TodoEndpoint
     {
-        public void AddRoutes(IEndpointRouteBuilder app)
+        public void AddToggleCompletedRoute(IEndpointRouteBuilder app)
         {
-            app.MapPatch("/api/todos/{id}/toggle",
+            app.MapPatch("/{id}/toggle",
                 async ([AsParameters] ToggleIsCompletedCommand command, ISender sender) =>
-                await sender.Send(command));
+                await sender.Send(command)).RequireAuthorization();
         }
     }
 
-    public sealed record ToggleIsCompletedCommand(string Id) : IRequest<TodoResponse>;
+    public sealed record ToggleIsCompletedCommand(string Id) : UserBoundRequest, IRequest<TodoResponse>;
 
     public class ToggleIsCompletedHandler(IMapper mapper) : IRequestHandler<ToggleIsCompletedCommand, TodoResponse?>
     {
         public async Task<TodoResponse?> Handle(ToggleIsCompletedCommand request, CancellationToken cancellationToken)
         {
-            var todo = await DB.Find<TodoItem>().OneAsync(request.Id, cancellationToken);
+            var todo = await DB.Find<TodoItem>().Match(t => t.ID == request.Id && t.OwnerId == request.UserId)
+                .ExecuteFirstAsync(cancellationToken);
             if (todo == null)
             {
                 var error = new ValidationError("Id", $"The specified Todo ID does not exist.");

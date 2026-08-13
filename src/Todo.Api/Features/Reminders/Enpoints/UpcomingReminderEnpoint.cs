@@ -4,19 +4,21 @@ using MediatR;
 using MongoDB.Driver.Linq;
 using MongoDB.Entities;
 using System.Text.RegularExpressions;
+using Todo.Api.Common;
 using Todo.Api.Features.Todos;
 
 namespace Todo.Api.Features.Reminders.Enpoints;
 
-public class UpcomingReminderEnpoint : ICarterModule
+public partial class ReminderEndpoints
 {
-    public void AddRoutes(IEndpointRouteBuilder app)
+    public void AddUpcompingRoute(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/reminders/upcoming", async ([AsParameters] UpcomingReminderQuery query, ISender sender) =>
+        app.MapGet("/upcoming", async ([AsParameters] UpcomingReminderQuery query, ISender sender) =>
         await sender.Send(query));
     }
 
-    public sealed record UpcomingReminderQuery(string? Within, DateTime? FireAt) : IRequest<List<PendingReminderDto>>;
+    public sealed record UpcomingReminderQuery(string? Within, DateTime? FireAt)
+        : UserBoundRequest, IRequest<List<PendingReminderDto>>;
 
     public class UpcomingReminderHandler(IMapper mapper)
         : IRequestHandler<UpcomingReminderQuery, List<PendingReminderDto>>
@@ -25,7 +27,8 @@ public class UpcomingReminderEnpoint : ICarterModule
             CancellationToken cancellationToken)
         {
             var query = DB.Queryable<Reminder>().Join(DB.Collection<TodoItem>(), r => r.TodoId, td => td.ID,
-                (reminder, todo) => new ReminderTodoDto { Reminder = reminder, Todo = todo });
+                    (reminder, todo) => new ReminderTodoDto { Reminder = reminder, Todo = todo })
+                .Where(rdto => rdto.Todo.OwnerId == request.UserId);
             if (request.Within == null)
             {
                 var reminders = await query.ToListAsync(cancellationToken: cancellationToken);

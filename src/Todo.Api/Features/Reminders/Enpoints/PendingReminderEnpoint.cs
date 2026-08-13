@@ -1,21 +1,21 @@
-using Carter;
 using MediatR;
 using MongoDB.Entities;
 using Todo.Api.Features.Todos;
 using MongoDB.Driver.Linq;
 using AutoMapper;
+using Todo.Api.Common;
 
 namespace Todo.Api.Features.Reminders.Enpoints;
 
-public class PendingReminderEndpoint : ICarterModule
+public partial class ReminderEndpoints
 {
-    public void AddRoutes(IEndpointRouteBuilder app)
+    public void AddPendingReminderRoute(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/reminders", ([AsParameters] PendingReminderQuery query, ISender sender) =>
-        sender.Send(query));
+        app.MapGet("", async ([AsParameters] PendingReminderQuery query, ISender sender)
+            => await sender.Send(query));
     }
 
-    public sealed record PendingReminderQuery(string? State) : IRequest<List<PendingReminderDto>>;
+    public sealed record PendingReminderQuery(string? State) : UserBoundRequest, IRequest<List<PendingReminderDto>>;
 
     public class PendingReminderHandler(IMapper mapper)
         : IRequestHandler<PendingReminderQuery, List<PendingReminderDto>>
@@ -23,8 +23,10 @@ public class PendingReminderEndpoint : ICarterModule
         public async Task<List<PendingReminderDto>> Handle(PendingReminderQuery request,
             CancellationToken cancellationToken)
         {
-            var query = DB.Queryable<Reminder>().Join(DB.Collection<TodoItem>(), r => r.TodoId, td => td.ID,
-                (reminder, todo) => new ReminderTodoDto { Reminder = reminder, Todo = todo });
+            var query = DB.Queryable<Reminder>()
+                .Join(DB.Collection<TodoItem>(), r => r.TodoId, td => td.ID,
+                    (reminder, todo) => new ReminderTodoDto { Reminder = reminder, Todo = todo })
+                .Where(rdto => rdto.Todo.OwnerId == request.UserId);
             if (request.State == null)
             {
                 var allreminders = await query.ToListAsync(cancellationToken: cancellationToken);

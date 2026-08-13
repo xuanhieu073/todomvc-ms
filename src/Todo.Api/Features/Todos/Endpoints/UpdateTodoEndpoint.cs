@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Carter;
 using FluentValidation;
 using MediatR;
 using MongoDB.Entities;
@@ -7,23 +6,24 @@ using Todo.Api.Common;
 
 namespace Todo.Api.Features.Todos.Endpoints
 {
-    public class UpdateTodoEndpoint : ICarterModule
+    public partial class TodoEndpoint
     {
-        public void AddRoutes(IEndpointRouteBuilder app)
+        public void AddUpateTodoRoute(IEndpointRouteBuilder app)
         {
-            app.MapPut("/api/todos/{id}", async (string Id, UpdateTodoCommand command, ISender sender) =>
+            app.MapPut("/{id}", async (string Id, UpdateTodoCommand command, ISender sender) =>
                 await sender.Send(command with { Id = Id }));
         }
     }
 
     public sealed record UpdateTodoCommand(string Id, string Title, bool IsCompleted, DateTime DueAt)
-        : IRequest<TodoResponse?>;
+        : UserBoundRequest, IRequest<TodoResponse?>;
 
     public class UpdateTodoHandler(IMapper mapper) : IRequestHandler<UpdateTodoCommand, TodoResponse?>
     {
         public async Task<TodoResponse?> Handle(UpdateTodoCommand request, CancellationToken cancellationToken)
         {
-            var todo = await DB.Find<TodoItem>().OneAsync(request.Id, cancellationToken);
+            var todo = await DB.Find<TodoItem>().Match(t => t.ID == request.Id && t.OwnerId == request.UserId)
+                .ExecuteFirstAsync(cancellationToken);
             if (todo == null)
             {
                 var error = new ValidationError("Id", $"The specified Todo ID does not exist.");

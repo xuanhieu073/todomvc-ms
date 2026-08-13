@@ -14,6 +14,7 @@ public class ReminderDto
 public class PendingReminderDto
 {
     public string Id { get; set; }
+    public string OwnerId { get; set; }
     public string TodoId { get; set; }
     public string Title { get; set; }
     public ReminderState State { get; set; }

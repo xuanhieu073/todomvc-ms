@@ -1,26 +1,30 @@
-using Carter;
 using MediatR;
+using MongoDB.Driver.Linq;
 using MongoDB.Entities;
 using Todo.Api.Common;
+using Todo.Api.Features.Todos;
 
 namespace Todo.Api.Features.Reminders.Enpoints;
 
-public class DimissReminderEnpoint : ICarterModule
+public partial class ReminderEndpoints
 {
-    public void AddRoutes(IEndpointRouteBuilder app)
+    public void AddDimissReminderRoute(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/api/reminders/{id}/dimiss",
-            async ([AsParameters] DimissReminderCommand command, ISender sender) =>
-            await sender.Send(command));
+        app.MapPatch("/{id}/dimiss", async ([AsParameters] DimissReminderCommand command, ISender sender)
+            => await sender.Send(command));
     }
 
-    public sealed record DimissReminderCommand(string Id) : IRequest<Reminder?>;
+    public sealed record DimissReminderCommand(string Id) : UserBoundRequest, IRequest<Reminder?>;
 
     public class DimissReminderHandler : IRequestHandler<DimissReminderCommand, Reminder?>
     {
         public async Task<Reminder?> Handle(DimissReminderCommand request, CancellationToken cancellationToken)
         {
-            var reminder = await DB.Find<Reminder>().OneAsync(request.Id, cancellationToken);
+            var reminder = await DB.Queryable<Reminder>()
+                .Join(DB.Collection<TodoItem>(), r => r.TodoId, t => t.ID, (r, t) => new { r, t })
+                .Where(x => x.t.OwnerId == request.UserId && x.r.ID == request.Id)
+                .Select(x => x.r)
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (reminder == null)
             {
@@ -28,13 +32,11 @@ public class DimissReminderEnpoint : ICarterModule
                 List<ValidationError> errors = [error];
                 throw new NotFoundException(errors);
             }
-            else
-            {
-                reminder.State = ReminderState.Dismissed;
-                reminder.DimissAt = DateTime.UtcNow;
-                await reminder.SaveAsync(cancellation: cancellationToken);
-                return reminder;
-            }
+
+            reminder.State = ReminderState.Dismissed;
+            reminder.DimissAt = DateTime.UtcNow;
+            await reminder.SaveAsync(cancellation: cancellationToken);
+            return reminder;
         }
     }
 }

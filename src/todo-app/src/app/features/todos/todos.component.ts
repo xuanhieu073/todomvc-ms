@@ -47,7 +47,7 @@ import { form, maxLength, required, FormField } from '@angular/forms/signals';
           </button>
         }
         <form novalidate class="flex w-full">
-          <app-todo-input [formField]="newTodoForm.title" />
+          <app-todo-input placeholder="What needs to be done?" [formField]="newTodoForm.title" />
           <app-todo-datepicker [formField]="newTodoForm.dueAt" />
           <button
             class="px-4 py-2 cursor-pointer disabled:opacity-10"

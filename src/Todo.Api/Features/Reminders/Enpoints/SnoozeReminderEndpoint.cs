@@ -1,39 +1,41 @@
-using Carter;
 using FluentValidation;
 using MediatR;
 using MongoDB.Entities;
+using MongoDB.Driver.Linq;
 using Todo.Api.Common;
+using Todo.Api.Features.Todos;
 
 namespace Todo.Api.Features.Reminders.Enpoints;
 
-public class SnoozeReminderEnpoint : ICarterModule
+public partial class ReminderEndpoints
 {
-    public void AddRoutes(IEndpointRouteBuilder app)
+    public void AddSnoozeReminderRoute(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/api/reminders/{id}/snooze", (string id, SnoozeReminderCommand command, ISender sender) =>
-            sender.Send(command with { Id = id }));
+        app.MapPatch("/{id}/snooze", async (string id, SnoozeReminderCommand command, ISender sender)
+            => await sender.Send(command with { Id = id }));
     }
 
-    public sealed record SnoozeReminderCommand(string Id, int Minutes) : IRequest<Reminder?>;
+    public sealed record SnoozeReminderCommand(string Id, int Minutes) : UserBoundRequest, IRequest<Reminder?>;
 
     public class SnoozeReminderHandler : IRequestHandler<SnoozeReminderCommand, Reminder?>
     {
         public async Task<Reminder?> Handle(SnoozeReminderCommand request, CancellationToken cancellationToken)
         {
-            var reminder = await DB.Find<Reminder>().OneAsync(request.Id, cancellationToken);
+            var reminder = await DB.Queryable<Reminder>()
+                .Join(DB.Collection<TodoItem>(), r => r.TodoId, t => t.ID, (r, t) => new { r, t })
+                .Where(x => x.t.OwnerId == request.UserId && x.r.ID == request.Id)
+                .Select(x => x.r).FirstOrDefaultAsync(cancellationToken);
             if (reminder == null)
             {
                 var error = new ValidationError("Id", $"The specified Todo ID does not exist.");
                 List<ValidationError> errors = [error];
                 throw new NotFoundException(errors);
             }
-            else
-            {
-                reminder.State = ReminderState.Snoozed;
-                reminder.SnoozeUntil = DateTime.UtcNow.AddSeconds(request.Minutes);
-                await reminder.SaveAsync(cancellation: cancellationToken);
-                return reminder;
-            }
+
+            reminder.State = ReminderState.Snoozed;
+            reminder.SnoozeUntil = DateTime.UtcNow.AddSeconds(request.Minutes);
+            await reminder.SaveAsync(cancellation: cancellationToken);
+            return reminder;
         }
     }
 

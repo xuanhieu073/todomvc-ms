@@ -1,27 +1,29 @@
 ﻿using AutoMapper;
-using Carter;
 using MediatR;
 using MongoDB.Entities;
 using MongoDB.Driver.Linq;
+using Todo.Api.Common;
 
 namespace Todo.Api.Features.Todos.Endpoints
 {
-    public class FilterTodoEndpoint : ICarterModule
+    public partial class TodoEndpoint
     {
-        public void AddRoutes(IEndpointRouteBuilder app)
+        public void AddFilterTodoRoute(IEndpointRouteBuilder app)
         {
-            app.MapGet("/api/todos", async ([AsParameters] FilterTodoQuery query, ISender sender) =>
-            await sender.Send(query));
+            app.MapGet("",
+                async ([AsParameters] FilterTodoQuery query, ISender sender) =>
+                await sender.Send(query));
         }
     }
 
-    public sealed record FilterTodoQuery(string Filter) : IRequest<List<TodoResponse>>;
+    public sealed record FilterTodoQuery(string Filter)
+        : UserBoundRequest, IRequest<List<TodoResponse>>;
 
     public class FilterTodoHandler(IMapper mapper) : IRequestHandler<FilterTodoQuery, List<TodoResponse>>
     {
         public async Task<List<TodoResponse>> Handle(FilterTodoQuery request, CancellationToken cancellationToken)
         {
-            var query = DB.Queryable<TodoItem>();
+            var query = DB.Queryable<TodoItem>().Where(t => t.OwnerId == request.UserId);
             query = request.Filter switch
             {
                 "active" => query.Where(t => !t.IsCompleted),
