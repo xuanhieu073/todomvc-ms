@@ -64,19 +64,19 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next)
 
             await context.Response.WriteAsJsonAsync(problemDetails);
         }
-        // catch (Exception)
-        // {
-        //     var problemDetails = new ProblemDetails
-        //     {
-        //         Status = StatusCodes.Status500InternalServerError,
-        //         Type = "InternalServerError",
-        //         Title = "Internal server error",
-        //         Detail = "An unexpected error has occurred."
-        //     };
+        catch (Exception)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Type = "InternalServerError",
+                Title = "Internal server error",
+                Detail = "An unexpected error has occurred."
+            };
 
-        //     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-        //     await context.Response.WriteAsJsonAsync(problemDetails);
-        // }
+            await context.Response.WriteAsJsonAsync(problemDetails);
+        }
     }
 }
