@@ -1,5 +1,4 @@
-﻿using MongoDB.Entities;
-using Todo.Api.Features.Todos;
+﻿using Todo.Api.Features.Todos;
 
 namespace Todo.Api.Features.Reminders
 {

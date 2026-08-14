@@ -1,9 +1,10 @@
 using System.Text;
+using Azure.Messaging.ServiceBus;
 using Carter;
 using DotNetEnv;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using MongoDB.Entities;
@@ -16,6 +17,11 @@ Env.Load(envPath);
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+// Configuration
+builder.Services.Configure<ServiceBusOptions>(
+    builder.Configuration.GetSection(ServiceBusOptions.SectionName));
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -27,12 +33,23 @@ builder.Services.AddMediatR(config =>
     config.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
-builder.Services.AddAzureClients(clientBuilder =>
+
+builder.Services.AddSingleton(sp =>
 {
-    clientBuilder.AddServiceBusClient(builder.Configuration.GetConnectionString("ASBConnectionString"));
+    var options = sp.GetRequiredService<IOptions<ServiceBusOptions>>().Value;
+
+    if (string.IsNullOrWhiteSpace(options.ConnectionString))
+    {
+        throw new InvalidOperationException(
+            $"The Service Bus ConnectionString is missing from the '{ServiceBusOptions.SectionName}' configuration section.");
+    }
+
+    return new ServiceBusClient(options.ConnectionString);
 });
+
 await DB.InitAsync("TodoApp",
     MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddSingleton<IMessageBusSenderService, MessageBusSenderService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
