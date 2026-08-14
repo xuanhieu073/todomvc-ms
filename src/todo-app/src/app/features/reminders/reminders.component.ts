@@ -94,7 +94,7 @@ export class RemindersComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.eventSource?.close();
-    this.eventSource?.removeEventListener('receive', this.handleAddReminder);
-    this.eventSource?.removeEventListener('remove', this.handleRemoveReminder);
+    this.eventSource?.removeEventListener('reminder-fired', this.handleAddReminder);
+    this.eventSource?.removeEventListener('reminder-removed', this.handleRemoveReminder);
   }
 }

@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.ServerSentEvents;
 using System.Runtime.CompilerServices;
-using System.Security.Claims;
 using System.Threading.Channels;
 using System.IdentityModel.Tokens.Jwt;
+using System.Reactive.Linq;
 
 
 namespace Todo.Bff.Features.Reminders.Enpoints;
@@ -33,7 +33,7 @@ public class RemindersStream : ICarterModule
                 return Task.FromResult(
                     TypedResults.ServerSentEvents(
                         MapToSseMessage(userId,
-                            notificationBroker.ToAsyncEnumerable(cancellationToken: cancellationToken))));
+                            notificationBroker.ToEnumerable())));
             }
             catch (Exception exception)
             {
@@ -43,9 +43,9 @@ public class RemindersStream : ICarterModule
 
         static async IAsyncEnumerable<SseItem<List<PendingReminderDto>>> MapToSseMessage(
             string? userId,
-            IAsyncEnumerable<NotificaitonEvent> stream)
+            IEnumerable<NotificaitonEvent> stream)
         {
-            await foreach (var data in stream)
+             foreach (var data in stream)
             {
                 if (data is FiredNotificationEvent)
                 {

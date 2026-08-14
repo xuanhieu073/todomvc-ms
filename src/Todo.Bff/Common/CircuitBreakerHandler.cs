@@ -1,26 +1,62 @@
 namespace Todo.Bff.Common;
 
-public sealed class CircuitBreakerHandler : DelegatingHandler
+public sealed class CircuitBreakerState
 {
-    private readonly Lock _lock = new();
+    private readonly object _lock = new();
 
     private int _failureCount;
     private DateTime _openUntil = DateTime.MinValue;
 
+    public bool IsOpen
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return DateTime.UtcNow < _openUntil;
+            }
+        }
+    }
+
+    public void RegisterFailure(int threshold, TimeSpan breakDuration)
+    {
+        lock (_lock)
+        {
+            _failureCount++;
+
+            if (_failureCount >= threshold)
+            {
+                _openUntil = DateTime.UtcNow + breakDuration;
+            }
+        }
+    }
+
+    public void Reset()
+    {
+        lock (_lock)
+        {
+            _failureCount = 0;
+            _openUntil = DateTime.MinValue;
+        }
+    }
+}
+
+public sealed class CircuitBreakerHandler(
+    CircuitBreakerState state) : DelegatingHandler
+{
     private const int FailureThreshold = 5;
-    private static readonly TimeSpan BreakDuration = TimeSpan.FromSeconds(30);
+
+    private static readonly TimeSpan BreakDuration =
+        TimeSpan.FromSeconds(30);
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        lock (_lock)
+        if (state.IsOpen)
         {
-            if (DateTime.UtcNow < _openUntil)
-            {
-                throw new HttpRequestException(
-                    "Circuit breaker is open.");
-            }
+            throw new HttpRequestException(
+                "Circuit breaker is open.");
         }
 
         try
@@ -29,47 +65,26 @@ public sealed class CircuitBreakerHandler : DelegatingHandler
                 request,
                 cancellationToken);
 
-            if (IsFailure(response))
+            if ((int)response.StatusCode >= 500)
             {
-                RegisterFailure();
+                state.RegisterFailure(
+                    FailureThreshold,
+                    BreakDuration);
             }
             else
             {
-                Reset();
+                state.Reset();
             }
 
             return response;
         }
         catch (HttpRequestException)
         {
-            RegisterFailure();
+            state.RegisterFailure(
+                FailureThreshold,
+                BreakDuration);
+
             throw;
         }
-    }
-
-    private void RegisterFailure()
-    {
-        lock (_lock)
-        {
-            _failureCount++;
-
-            if (_failureCount >= FailureThreshold)
-            {
-                _openUntil = DateTime.UtcNow + BreakDuration;
-            }
-        }
-    }
-
-    private void Reset()
-    {
-        lock (_lock)
-        {
-            _failureCount = 0;
-        }
-    }
-
-    private static bool IsFailure(HttpResponseMessage response)
-    {
-        return (int)response.StatusCode >= 500;
     }
 }

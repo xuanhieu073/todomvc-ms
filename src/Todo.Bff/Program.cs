@@ -14,9 +14,11 @@ builder.Services.AddCarter();
 builder.Services.AddMediatR(config =>
     config.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
-builder.Services.AddSingleton<CircuitBreakerHandler>();
-builder.Services.AddTransient<ClientAuthDelegatingHandler>();
+builder.Services.AddSingleton<CircuitBreakerState>();
+builder.Services.AddTransient<CircuitBreakerHandler>();
 builder.Services.AddTransient<RetryHandler>();
+builder.Services.AddTransient<ClientAuthDelegatingHandler>();
+
 builder.Services.AddTodoApiClient<TodoApiClient>();
 builder.Services.AddTodoApiClient<ReminderApiClient>();
 builder.Services.AddTodoApiClient<StatisticApiClient>();

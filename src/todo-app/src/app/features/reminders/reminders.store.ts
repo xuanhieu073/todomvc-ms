@@ -29,7 +29,7 @@ export class RemindersStore extends ComponentStore<RemindersState> {
     });
 
     this.initializeEffect();
-    this.localSaveReminderEffect(this.pendingReminders$);
+    // this.localSaveReminderEffect(this.pendingReminders$);
   }
 
   readonly addPendingReminder = this.updater((state, reminders: Reminder[]) => {
@@ -51,22 +51,34 @@ export class RemindersStore extends ComponentStore<RemindersState> {
   initializeEffect = this.effect((trigger$) =>
     trigger$.pipe(
       tap(() => {
-        const pendingReminders = localStorage.getItem('pendingReminders')
-          ? (JSON.parse(localStorage.getItem('pendingReminders')!) as Reminder[])
-          : null;
-        if (pendingReminders?.length) this.patchState({ pendingReminders });
+        // const pendingReminders = localStorage.getItem('pendingReminders')
+        //   ? (JSON.parse(localStorage.getItem('pendingReminders')!) as Reminder[])
+        //   : null;
+        // if (pendingReminders?.length) this.patchState({ pendingReminders });
+        this.patchState({ isLoading: true });
       }),
+      switchMap(() =>
+        this.reminderSerivce.getReminders('pending').pipe(
+          tapResponse({
+            next: (reminders) =>
+              this.setState((state) => ({ ...state, pendingReminders: reminders })),
+            error: (error: HttpErrorResponse) =>
+              this.patchState({ error: { title: 'Fail to fetch', details: error.message } }),
+            finalize: () => this.patchState({ isLoading: false }),
+          }),
+        ),
+      ),
     ),
   );
 
-  localSaveReminderEffect = this.effect<Reminder[]>((reminders) =>
-    reminders.pipe(
-      tap((reminders) => {
-        console.log('saving pending reminders', reminders);
-        localStorage.setItem('pendingReminders', JSON.stringify(reminders));
-      }),
-    ),
-  );
+  // localSaveReminderEffect = this.effect<Reminder[]>((reminders) =>
+  //   reminders.pipe(
+  //     tap((reminders) => {
+  //       console.log('saving pending reminders', reminders);
+  //       localStorage.setItem('pendingReminders', JSON.stringify(reminders));
+  //     }),
+  //   ),
+  // );
 
   snoozeReminderEffect = this.effect<{ Id: string; minutes: number }>((sonozeInfo$) =>
     sonozeInfo$.pipe(

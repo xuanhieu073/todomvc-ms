@@ -5,6 +5,20 @@ namespace Todo.Bff.Clients;
 
 public class ReminderApiClient(HttpClient httpClient) : ApiClient(httpClient)
 {
+    public async Task<ApiResult> GetPendingReminders(ReminderState state, CancellationToken cancellationToken = default)
+    {
+        return state switch
+        {
+            ReminderState.Pending => await GetAsync<List<PendingReminderDto>>($"/api/reminders?state=pending",
+                cancellationToken),
+            ReminderState.Snoozed => await GetAsync<List<PendingReminderDto>>($"/api/reminders?state=snoozed",
+                cancellationToken),
+            ReminderState.Dismissed => await GetAsync<List<PendingReminderDto>>($"/api/reminders?state=dismissed",
+                cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+        };
+    }
+
     public async Task<ApiResult> SnoozeReminder(string Id, SnoozeReminderReuqest reuqest,
         CancellationToken cancellationToken = default)
     {
