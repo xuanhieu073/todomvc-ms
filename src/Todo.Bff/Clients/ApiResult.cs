@@ -8,6 +8,7 @@ public abstract class ApiResult
     public bool IsSuccess { get; init; }
     public abstract IResult ToHttpResponse();
 }
+
 public class ApiSucessResult<T> : ApiResult
 {
     public T? Data { get; init; }
@@ -17,8 +18,11 @@ public class ApiSucessResult<T> : ApiResult
 
     public override IResult ToHttpResponse()
     {
-        return Data is null
-                ? Results.NoContent()
-                : Results.Ok(Data);
+        if (Data is null && StatusCode != null)
+        {
+            return Results.StatusCode((int)StatusCode);
+        }
+
+        return Results.Json(Data, statusCode: this.StatusCode);
     }
 }

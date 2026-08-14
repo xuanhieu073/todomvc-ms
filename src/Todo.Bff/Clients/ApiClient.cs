@@ -53,6 +53,17 @@ namespace Todo.Bff.Clients
                 case HttpStatusCode.NoContent:
                     return ApiSucessResult<TResponse>.Success(default!, (int)response.StatusCode);
 
+                case HttpStatusCode.Ambiguous:
+                case HttpStatusCode.MovedPermanently:
+                case HttpStatusCode.Redirect:
+                case HttpStatusCode.RedirectMethod:
+                case HttpStatusCode.NotModified:
+                case HttpStatusCode.UseProxy:
+                case HttpStatusCode.Unused:
+                case HttpStatusCode.RedirectKeepVerb:
+                case HttpStatusCode.PermanentRedirect:
+                    return ApiSucessResult<TResponse>.Success(default!, (int)response.StatusCode);
+
                 case HttpStatusCode.BadRequest:
                 {
                     var error = Deserialize<Error>(raw);
@@ -66,15 +77,20 @@ namespace Todo.Bff.Clients
                 }
 
                 case HttpStatusCode.Unauthorized:
-                {
                     throw new UnauthorizedException("UnauthorizedException");
-                }
+
+                case HttpStatusCode.Forbidden:
+                case HttpStatusCode.Conflict:
+                case HttpStatusCode.TooManyRequests:
+                    throw new ClientErrorException("ForbiddenException", response.StatusCode);
 
                 case HttpStatusCode.InternalServerError:
                     throw new Exception("Internal Server Error");
-                case HttpStatusCode.BadGateway:
-                case HttpStatusCode.ServiceUnavailable:
 
+                case HttpStatusCode.BadGateway:
+                    throw new Exception("BadGateway");
+                case HttpStatusCode.ServiceUnavailable:
+                    throw new Exception("ServiceUnavailable");
                 default:
                     throw new Exception("Unknow Error");
             }

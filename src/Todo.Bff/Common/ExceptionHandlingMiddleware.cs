@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Todo.Bff.Common;
@@ -19,6 +20,12 @@ public sealed class NotFoundException(IEnumerable<ValidationError> errors)
     : Exception("The requested resource could not be found.")
 {
     public IEnumerable<ValidationError> Errors { get; } = errors;
+}
+
+public class ClientErrorException(string errorMessage, HttpStatusCode statusCode)
+    : Exception(errorMessage)
+{
+    public HttpStatusCode StatusCode { get; } = statusCode;
 }
 
 public sealed class UnauthorizedException(string errorMessage)
@@ -88,6 +95,20 @@ public sealed class ExceptionHandlingMiddleware
                 {
                     { "errors", exception.Message }
                 }
+            };
+
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+            await context.Response.WriteAsJsonAsync(problemDetails);
+        }
+        catch (ClientErrorException exception)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Status = (int)exception.StatusCode,
+                Type = exception.StatusCode.ToString(),
+                Title = "CLient Error",
+                Detail = exception.Message
             };
 
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
