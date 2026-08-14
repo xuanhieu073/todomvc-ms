@@ -32,7 +32,7 @@ namespace Todo.Api.Features.Todos.Endpoints
             else
             {
                 todo.IsCompleted = !todo.IsCompleted;
-                todo.CompletedAt = DateTime.UtcNow;
+                todo.CompletedAt = todo.IsCompleted ? DateTime.UtcNow : null;
                 await todo.SaveAsync(cancellation: cancellationToken);
                 return mapper.Map<TodoResponse>(todo);
             }
