@@ -31,103 +31,82 @@ public class ClientErrorException(string errorMessage, HttpStatusCode statusCode
 public sealed class UnauthorizedException(string errorMessage)
     : Exception(errorMessage);
 
-public sealed class ExceptionHandlingMiddleware
+public sealed class ExceptionHandlingMiddleware(ILogger<ExceptionHandlingMiddleware> logger, RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public ExceptionHandlingMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         try
         {
-            await _next(context);
+            await next(context);
         }
 
         catch (ValidationException exception)
         {
-            var problemDetails = new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Type = "ValidationFailure",
-                Title = "Validation error",
-                Detail = "One or more validation errors has occurred",
-                Extensions =
-                {
-                    ["errors"] = exception.Errors
-                }
-            };
-
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-
-            await context.Response.WriteAsJsonAsync(problemDetails);
+            logger.LogWarning(exception, "Validation error occurred.");
+            await HandleExceptionAsync(context, exception, StatusCodes.Status400BadRequest, "ValidationFailure",
+                "Validation error", "One or more validation errors has occurred", exception.Errors);
         }
         catch (NotFoundException exception)
         {
-            var problemDetails = new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Type = "NotFound",
-                Title = "Resource not found",
-                Detail = "The requested resource could not be found.",
-                Extensions =
-                {
-                    ["errors"] = exception.Errors
-                }
-            };
-
-            context.Response.StatusCode = StatusCodes.Status404NotFound;
-
-            await context.Response.WriteAsJsonAsync(problemDetails);
+            logger.LogWarning(exception, "Resource not found.");
+            await HandleExceptionAsync(context, exception, StatusCodes.Status404NotFound, "NotFound",
+                "Resource not found", "The requested resource could not be found.", exception.Errors);
         }
         catch (UnauthorizedException exception)
         {
-            var problemDetails = new ProblemDetails
-            {
-                Status = StatusCodes.Status401Unauthorized,
-                Type = "Unauthorized",
-                Title = "Unauthorized",
-                Detail = "You must provide valid authentication credentials to access this resource.",
-                Extensions = new Dictionary<string, object?>
-                {
-                    { "errors", exception.Message }
-                }
-            };
-
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-
-            await context.Response.WriteAsJsonAsync(problemDetails);
+            logger.LogWarning(exception, "Unauthorized access attempt.");
+            await HandleExceptionAsync(context, exception, StatusCodes.Status401Unauthorized, "Unauthorized",
+                "Unauthorized", "You must provide valid authentication credentials to access this resource.",
+                exception.Message);
         }
         catch (ClientErrorException exception)
         {
-            var problemDetails = new ProblemDetails
-            {
-                Status = (int)exception.StatusCode,
-                Type = exception.StatusCode.ToString(),
-                Title = "CLient Error",
-                Detail = exception.Message
-            };
-
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-
-            await context.Response.WriteAsJsonAsync(problemDetails);
+            logger.LogWarning(exception, "Client error occurred with status code {StatusCode}.", exception.StatusCode);
+            int statusCode = (int)exception.StatusCode;
+            await HandleExceptionAsync(context, exception, statusCode, exception.StatusCode.ToString(), "Client Error",
+                exception.Message);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            var problemDetails = new ProblemDetails
-            {
-                Status = StatusCodes.Status500InternalServerError,
-                Type = "InternalServerError",
-                Title = "Internal server error",
-                Detail = "An unexpected error has occurred."
-            };
-
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-
-            await context.Response.WriteAsJsonAsync(problemDetails);
+            logger.LogError(exception, "An unhandled exception occurred on the server.");
+            await HandleExceptionAsync(context, exception, StatusCodes.Status500InternalServerError,
+                "InternalServerError", "Internal server error", "An unexpected error has occurred.");
         }
+    }
+
+    private async Task HandleExceptionAsync(
+        HttpContext context,
+        Exception exception,
+        int statusCode,
+        string type,
+        string title,
+        string detail,
+        object? errors = null)
+    {
+        if (context.Response.HasStarted)
+        {
+            logger.LogWarning(
+                "The response has already started, the exception middleware cannot modify the response options.");
+            throw exception;
+        }
+
+        context.Response.ContentType = "application/problem+json";
+        context.Response.StatusCode = statusCode;
+
+        var problemDetails = new ProblemDetails
+        {
+            Status = statusCode,
+            Type = type,
+            Title = title,
+            Detail = detail,
+            Instance = context.Request.Path
+        };
+
+        if (errors != null)
+        {
+            problemDetails.Extensions["errors"] = errors;
+        }
+
+        await context.Response.WriteAsJsonAsync(problemDetails);
     }
 }

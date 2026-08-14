@@ -51,6 +51,7 @@ namespace Todo.Bff.Clients
                 }
 
                 case HttpStatusCode.NoContent:
+                case HttpStatusCode.Accepted:
                     return ApiSucessResult<TResponse>.Success(default!, (int)response.StatusCode);
 
                 case HttpStatusCode.Ambiguous:
