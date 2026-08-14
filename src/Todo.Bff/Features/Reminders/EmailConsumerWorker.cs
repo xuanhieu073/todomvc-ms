@@ -4,7 +4,10 @@ using FluentEmail.Core;
 
 namespace Todo.Bff.Features.Reminders
 {
-    public class EmailConsumerWorker(ServiceBusClient client, IServiceProvider serviceProvider) : BackgroundService
+    public class EmailConsumerWorker(
+        ServiceBusClient client,
+        IServiceProvider serviceProvider,
+        ILogger<EmailConsumerWorker> logger) : BackgroundService
     {
         private readonly ServiceBusProcessor _emailProcessor =
             client.CreateProcessor("queue.email", new ServiceBusProcessorOptions());
@@ -54,6 +57,46 @@ namespace Todo.Bff.Features.Reminders
             }
         }
 
-        private Task ErrorHandler(ProcessErrorEventArgs args) => Task.CompletedTask;
+        private Task ErrorHandler(ProcessErrorEventArgs args)
+        {
+            logger.LogError(
+                args.Exception,
+                "Email processor failure. Source: {ErrorSource}, Namespace: {Namespace}, Entity: {EntityPath}",
+                args.ErrorSource,
+                args.FullyQualifiedNamespace,
+                args.EntityPath);
+
+            return Task.CompletedTask;
+        }
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            logger.LogInformation("Stopping Service Bus Processor gracefully...");
+
+            try
+            {
+                await _emailProcessor.StopProcessingAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error occurred while stopping the Service Bus Processor.");
+            }
+            finally
+            {
+                await base.StopAsync(cancellationToken);
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            logger.LogInformation("Disposing Service Bus Processor resources...");
+
+            _emailProcessor.ProcessMessageAsync -= MessageHandler;
+            _emailProcessor.ProcessErrorAsync -= ErrorHandler;
+
+            await _emailProcessor.DisposeAsync();
+
+            GC.SuppressFinalize(this);
+        }
     }
 }

@@ -16,7 +16,8 @@ public class RemovedNotificationEvent : NotificaitonEvent;
 
 public class NotificationConsumerWorker(
     ServiceBusClient client,
-    NotificationBroker notificationBroker) : BackgroundService
+    NotificationBroker notificationBroker,
+    ILogger<NotificationConsumerWorker> logger) : BackgroundService
 {
     private readonly ServiceBusProcessor _processor =
         client.CreateProcessor("queue.notification", new ServiceBusProcessorOptions());
@@ -61,5 +62,46 @@ public class NotificationConsumerWorker(
         }
     }
 
-    private Task ErrorHandler(ProcessErrorEventArgs args) => Task.CompletedTask;
+
+    private Task ErrorHandler(ProcessErrorEventArgs args)
+    {
+        logger.LogError(
+            args.Exception,
+            "Email processor failure. Source: {ErrorSource}, Namespace: {Namespace}, Entity: {EntityPath}",
+            args.ErrorSource,
+            args.FullyQualifiedNamespace,
+            args.EntityPath);
+
+        return Task.CompletedTask;
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Stopping Service Bus Processor gracefully...");
+
+        try
+        {
+            await _processor.StopProcessingAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error occurred while stopping the Service Bus Processor.");
+        }
+        finally
+        {
+            await base.StopAsync(cancellationToken);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        logger.LogInformation("Disposing Service Bus Processor resources...");
+
+        _processor.ProcessMessageAsync -= MessageHandler;
+        _processor.ProcessErrorAsync -= ErrorHandler;
+
+        await _processor.DisposeAsync();
+
+        GC.SuppressFinalize(this);
+    }
 }
