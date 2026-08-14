@@ -32,11 +32,12 @@ export class RemindersStore extends ComponentStore<RemindersState> {
     this.localSaveReminderEffect(this.pendingReminders$);
   }
 
-  readonly addPendingReminder = this.updater((state, reminder: Reminder[]) => {
-    console.log('Adding pending reminder:', reminder);
+  readonly addPendingReminder = this.updater((state, reminders: Reminder[]) => {
+    const pendingIds = new Set(state.pendingReminders.map((r) => r.id));
+    const filteredReminders = reminders.filter((r) => !pendingIds.has(r.id));
     return {
       ...state,
-      pendingReminders: [...state.pendingReminders, ...reminder],
+      pendingReminders: [...state.pendingReminders, ...filteredReminders],
     };
   });
 
