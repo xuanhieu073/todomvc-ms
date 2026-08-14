@@ -34,7 +34,6 @@ builder.Services.AddAzureClients(clientBuilder =>
 await DB.InitAsync("TodoApp",
     MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-var ValidIssuer = builder.Configuration["Jwt:Issuer"];
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

@@ -31,9 +31,8 @@ builder.Services.AddAzureClients(clientBuilder =>
     clientBuilder.AddServiceBusClient(builder.Configuration.GetConnectionString("ASBConnectionString"));
 });
 
-var domain = builder.Configuration["Mailgun:Domain"];
-var apiKey = builder.Configuration["Mailgun:ApiKey"];
-var fromEmail = builder.Configuration["Mailgun:DefaultFromEmail"];
+var fromEmail = builder.Configuration.GetValue<string>("Mailgun:DefaultFromEmail")
+                ?? throw new InvalidOperationException("Mailgun:DefaultFromEmail is missing in configuration.");
 var emailBuilder = builder.Services.AddFluentEmail(fromEmail);
 if (builder.Environment.IsDevelopment())
 {
@@ -41,6 +40,10 @@ if (builder.Environment.IsDevelopment())
 }
 else
 {
+    var domain = builder.Configuration.GetValue<string>("Mailgun:Domain")
+                 ?? throw new InvalidOperationException("Mailgun:Domain is missing in configuration.");
+    var apiKey = builder.Configuration.GetValue<string>("Mailgun:ApiKey")
+                 ?? throw new InvalidOperationException("Mailgun:ApiKey is missing in configuration.");
     emailBuilder.AddMailGunSender(domain, apiKey);
 }
 
