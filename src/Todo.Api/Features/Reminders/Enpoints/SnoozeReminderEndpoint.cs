@@ -17,7 +17,7 @@ public partial class ReminderEndpoints
 
     public sealed record SnoozeReminderCommand(string Id, int Minutes) : UserBoundRequest, IRequest<Reminder?>;
 
-    public class SnoozeReminderHandler(IWebHostEnvironment _env) : IRequestHandler<SnoozeReminderCommand, Reminder?>
+    public class SnoozeReminderHandler(IWebHostEnvironment env) : IRequestHandler<SnoozeReminderCommand, Reminder?>
     {
         public async Task<Reminder?> Handle(SnoozeReminderCommand request, CancellationToken cancellationToken)
         {
@@ -33,7 +33,7 @@ public partial class ReminderEndpoints
             }
 
             reminder.State = ReminderState.Snoozed;
-            reminder.SnoozeUntil = _env.IsDevelopment()
+            reminder.SnoozeUntil = env.IsDevelopment()
                 ? DateTime.UtcNow.AddSeconds(request.Minutes)
                 : DateTime.UtcNow.AddMinutes(request.Minutes);
             await reminder.SaveAsync(cancellation: cancellationToken);

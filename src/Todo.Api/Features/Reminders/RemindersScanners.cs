@@ -7,10 +7,14 @@ using Todo.Api.Features.Todos;
 
 namespace Todo.Api.Features.Reminders
 {
-    public class RemindersScanners(ILogger<RemindersScanners> logger, IMessageBusSenderService senderService)
+    public class RemindersScanners(
+        IWebHostEnvironment env,
+        ILogger<RemindersScanners> logger,
+        IMessageBusSenderService senderService)
         : BackgroundService
     {
-        private readonly TimeSpan _delayInterval = TimeSpan.FromSeconds(2);
+        private readonly TimeSpan _delayInterval =
+            env.IsDevelopment() ? TimeSpan.FromSeconds(2) : TimeSpan.FromSeconds(30);
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {

@@ -46,10 +46,11 @@ builder.Services.AddSingleton(sp =>
 
     return new ServiceBusClient(options.ConnectionString);
 });
+builder.Services.AddSingleton<IMessageBusSenderService, MessageBusSenderService>();
 
 await DB.InitAsync("TodoApp",
     MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddSingleton<IMessageBusSenderService, MessageBusSenderService>();
+await MongoIndexConfig.InitializeIndexesAsync();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
